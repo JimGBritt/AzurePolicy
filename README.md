@@ -1,0 +1,2 @@
+# AzurePolicy
+Sample Azure Policies
