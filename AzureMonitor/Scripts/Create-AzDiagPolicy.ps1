@@ -117,7 +117,6 @@ April 29, 2019 Initial
     This script posted to and discussed at the following locations:
 #>
 
-[cmdletbinding(DefaultParameterSetName = 'Default')]
 param
 (
     # Export all policies without prompting - default is false
