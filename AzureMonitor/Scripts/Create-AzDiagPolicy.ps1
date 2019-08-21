@@ -26,9 +26,9 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 16, 2019 1.2   
+August 21, 2019 1.2   
     - Improved efficiency for skipping invalid resources on analysis
-    - Added TenantId to bypass subscription listing and go against all subs in current AD tenant
+    - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
     - Added LogPolicyOnly switch to only export Azure Policies for resources that support Logs (metrics bypassed)
     - Special thanks to Dimitri Lider (Microsoft) for his contributions to the 2nd and 3rd bullet above
       Thank you for providing feedback!  
@@ -73,8 +73,8 @@ August 16, 2019 1.2
     If specified will do a post export validation recursively against the export directory or will validate JSONs recursively in current script
     directory and subfolders or exportdirectory (if specified).
 
- .PARAMETER TenantId
-    Use the -TenantId parameter with a proper guid formatted ID to bypass the subscriptionID requirement
+ .PARAMETER Tenant
+    Use the -Tenant parameter to bypass the subscriptionID requirement
     Note: Cannot use in conjunction with -SubscriptionID
 
 .PARAMETER -LogPolicyOnly
@@ -100,13 +100,13 @@ August 16, 2019 1.2
   and will validate all JSON files to ensure they have no syntax errors
 
 .EXAMPLE
-.\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -TenantId -ExportDir ".\LogPolicies"
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -Tenant -ExportDir ".\LogPolicies"
   Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
   and will validate all JSON files to ensure they have no syntax errors.  This example also provides the ability to go against the
   entire Azure AD Tenant as opposed to a single subscription
 
 .EXAMPLE
-.\Create-AzDiagPolicy.ps1 -LogPolicyOnly -ExportAll -ExportEH -ExportLA -ValidateJSON -TenantId -ExportDir ".\LogPolicies"
+.\Create-AzDiagPolicy.ps1 -LogPolicyOnly -ExportAll -ExportEH -ExportLA -ValidateJSON -Tenant -ExportDir ".\LogPolicies"
   Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
   and will validate all JSON files to ensure they have no syntax errors.  This example also provides the ability to go against the
   entire Azure AD Tenant as opposed to a single subscription.  Exports Log Policies (metric check is bypassed)
@@ -114,9 +114,9 @@ August 16, 2019 1.2
 
 .NOTES
    AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 16, 2019 1.2   
+   LASTEDIT: August 21, 2019 1.2   
     - Improved efficiency for skipping invalid resources on analysis
-    - Added TenantId to bypass subscription listing and go against all subs in current AD tenant
+    - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
     - Added LogPolicyOnly switch to only export Azure Policies for resources that support Logs (metrics bypassed)
     - Special thanks to Dimitri Lider (Microsoft) for his contributions to the 2nd and 3rd bullet above
       Thank you for providing feedback Dimitri!
@@ -181,8 +181,8 @@ param
     # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
     [switch]$LogPolicyOnly=$False,
 
-    # TenantId switch to bypass subscriptionId requirement
-    [switch]$TenantId=$False
+    # Tenant switch to bypass subscriptionId requirement
+    [switch]$Tenant=$False
 
 )
 # FUNCTIONS
@@ -876,7 +876,7 @@ catch
 
 # Authenticate to Azure if not already authenticated 
 # Ensure this is the subscription where your Azure Resources are you want to send diagnostic data from
-If($AzureLogin -and !($SubscriptionID) -and !($TenantId))
+If($AzureLogin -and !($SubscriptionID) -and !($Tenant))
 {
     [array]$SubscriptionArray = Add-IndexNumberToArray (Get-AzSubscription) 
     [int]$SelectedSub = 0
@@ -919,12 +919,12 @@ If($AzureLogin -and !($SubscriptionID) -and !($TenantId))
         [guid]$SubscriptionID = $($SubscriptionArray[$SelectedSub - 1].ID)
     }
 }
-if($SubscriptionId -and !($TenantId))
+if($SubscriptionId -and !($Tenant))
 {
     Write-Host "Selecting Azure Subscription: $($SubscriptionID.Guid) ..." -ForegroundColor Cyan
     $Null = Select-AzSubscription -SubscriptionId $SubscriptionID.Guid
 }
-if($TenantId)
+if($Tenant)
 {
     $SubScriptionsToProcess = Get-AzSubscription -TenantId $($token).TenantId
 }
@@ -980,7 +980,7 @@ IF($($ExportEH) -or ($ExportLA))
     {
         try
         {
-            if($SubscriptionId -and !($TenantId))
+            if($SubscriptionId -and !($Tenant))
             {
                 Write-Host "Gathering a list of monitorable Resource Types from Azure Subscription ID " -NoNewline -ForegroundColor Cyan
                 Write-Host "$SubscriptionId..." -ForegroundColor Yellow
@@ -995,7 +995,7 @@ IF($($ExportEH) -or ($ExportLA))
                     $DiagnosticCapable = Add-IndexNumberToArray (Get-ResourceType -allResources $ResourcesToCheck).where({$_.Logs -eq $True}) 
                 }
             }
-            elseif($TenantId)
+            elseif($Tenant)
             {
                 Write-Host "Gathering a list of monitorable Resource Types from Azure AD Tenant " -ForegroundColor Cyan
                 Write-Host "A total of $($SubScriptionsToProcess.count) subscriptions to process..."
