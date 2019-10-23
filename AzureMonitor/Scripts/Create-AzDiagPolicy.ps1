@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 1.2
+.VERSION 1.3
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,6 +26,8 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
+October 22, 2019 1.3
+    - Added parameter for "all locations" for Log Analytics based policies
 August 21, 2019 1.2   
     - Improved efficiency for skipping invalid resources on analysis
     - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
@@ -114,7 +116,10 @@ August 21, 2019 1.2
 
 .NOTES
    AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 21, 2019 1.2   
+   LASTEDIT: October 22, 2019 1.3
+    - Added parameter for "all locations" for Log Analytics based policies
+    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature
+   August 21, 2019 1.2   
     - Improved efficiency for skipping invalid resources on analysis
     - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
     - Added LogPolicyOnly switch to only export Azure Policies for resources that support Logs (metrics bypassed)
@@ -182,7 +187,10 @@ param
     [switch]$LogPolicyOnly=$False,
 
     # Tenant switch to bypass subscriptionId requirement
-    [switch]$Tenant=$False
+    [switch]$Tenant=$False,
+
+    # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
+    [switch]$AllRegions=$False
 
 )
 # FUNCTIONS
@@ -340,6 +348,153 @@ function Update-LogAnalyticsJSON
 )
 {
 $JSONARRAY=@()
+if($AllRegions)
+{
+    $JSONPARMS = @'
+{
+            "profileName": {
+                "type": "String",
+                "metadata": {
+                    "displayName": "Profile Name for Config",
+                    "description": "The profile name Azure Diagnostics"
+                }
+            },
+            "logAnalytics": {
+                "type": "string",
+                "metadata": {
+                    "displayName": "logAnalytics",
+                    "description": "The target Log Analytics Workspace for Azure Diagnostics",
+                    "strongType": "omsWorkspace"
+                }
+            },
+            "metricsEnabled": {
+                "type": "String",
+                "metadata": {
+                    "displayName": "Enable Metrics",
+                    "description": "Enable Metrics - True or False"
+                },
+                "allowedValues": [
+                    "True",
+                    "False"
+                ],
+                "defaultValue": "False"
+            },
+            "logsEnabled": {
+                "type": "String",
+                "metadata": {
+                    "displayName": "Enable Logs",
+                    "description": "Enable Logs - True or False"
+                },
+                "allowedValues": [
+                    "True",
+                    "False"
+                ],
+                "defaultValue": "True"
+            }
+        }
+'@
+
+$JSONRULES = @'
+{
+            "if": {
+                "allOf": [
+                    {
+                        "field": "type",
+                        "equals": "<RESOURCE TYPE>"
+                    }
+                ]
+            },
+            "then": {
+                "effect": "deployIfNotExists",
+                "details": {
+                    "type": "Microsoft.Insights/diagnosticSettings",
+                    "existenceCondition": {
+                        "allOf": [
+                            {
+                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
+                                "equals": "[parameters('LogsEnabled')]"
+                            },
+                            {
+                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
+                                "equals": "[parameters('MetricsEnabled')]"
+                            },
+                            {
+                                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                                "equals": "[parameters('logAnalytics')]"
+                            }
+                        ]
+                    },
+                    "roleDefinitionIds": [
+                        "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                    ],
+                    "deployment": {
+                        "properties": {
+                            "mode": "incremental",
+                            "template": {
+                                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "contentVersion": "1.0.0.0",
+                                "parameters": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "logAnalytics": {
+                                        "type": "string"
+                                    },
+                                    "metricsEnabled": {
+                                        "type": "string"
+                                    },
+                                    "logsEnabled": {
+                                        "type": "string"
+                                    },
+                                    "profileName": {
+                                        "type": "string"
+                                    }
+                                },
+                                "variables": {},
+                                "resources": [
+                                    {
+                                        "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
+                                        "apiVersion": "2017-05-01-preview",
+                                        "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",                                        
+                                        "dependsOn": [],
+                                        "properties": {
+                                            "workspaceId": "[parameters('logAnalytics')]",<METRICS ARRAY><LOGS ARRAY>                                        
+                                        }
+                                    }
+                                ],
+                                "outputs": {
+                                    "policy": {
+                                        "type": "string",
+                                        "value": "[concat(parameters('logAnalytics'), 'configured for diagnostic logs for ', ': ', parameters('name'))]"
+                                    }
+                                }
+                            },
+                            "parameters": {
+                                "logAnalytics": {
+                                    "value": "[parameters('logAnalytics')]"
+                                },
+                                "name": {
+                                    "value": "[field('<NAME OR FULLNAME>')]"
+                                },
+                                "metricsEnabled": {
+                                    "value": "[parameters('metricsEnabled')]"
+                                },
+                                "logsEnabled": {
+                                    "value": "[parameters('logsEnabled')]"
+                                },
+                                "profileName": {
+                                    "value": "[parameters('profileName')]"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+'@
+}
+else 
+{
 $JSONPARMS = @'
 {
             "profileName": {
@@ -501,7 +656,7 @@ $JSONRULES = @'
             }
         }
 '@
-
+}
 $JSONVar = @'
 {
     "properties": {
