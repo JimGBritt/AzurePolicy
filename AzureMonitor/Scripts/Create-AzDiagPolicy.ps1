@@ -26,14 +26,9 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 22, 2019 1.3
+October 23, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
-August 21, 2019 1.2   
-    - Improved efficiency for skipping invalid resources on analysis
-    - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
-    - Added LogPolicyOnly switch to only export Azure Policies for resources that support Logs (metrics bypassed)
-    - Special thanks to Dimitri Lider (Microsoft) for his contributions to the 2nd and 3rd bullet above
-      Thank you for providing feedback!  
+    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
 #>
 
 <#  
@@ -125,7 +120,7 @@ August 21, 2019 1.2
 
 .NOTES
    AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 22, 2019 1.3
+   LASTEDIT: October 23, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
     - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
    
