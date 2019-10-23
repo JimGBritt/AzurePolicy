@@ -79,8 +79,12 @@ August 21, 2019 1.2
     Use the -Tenant parameter to bypass the subscriptionID requirement
     Note: Cannot use in conjunction with -SubscriptionID
 
-.PARAMETER -LogPolicyOnly
-    This the -LogPolicyOnly parameter to export Azure Policies for resourceTypes that support Logs (bypass those that only support Metrics)
+ .PARAMETER LogPolicyOnly
+    Use the -LogPolicyOnly parameter to export Azure Policies for resourceTypes that support Logs (bypass those that only support Metrics)
+
+ .PARAMETER AllRegions
+    This AllRegions switch can be used to bypass the "location" check / parameter in the Azure Policies for Log Analytics.  
+    Note: This switch does not support EventHub based policies due to the region requirement for EventHubs and Azure Diagnostic settings
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
@@ -113,12 +117,18 @@ August 21, 2019 1.2
   and will validate all JSON files to ensure they have no syntax errors.  This example also provides the ability to go against the
   entire Azure AD Tenant as opposed to a single subscription.  Exports Log Policies (metric check is bypassed)
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -Tenant -AllRegions
+  Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
+  and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
+  requirements for the exported Log Analytics policies.
 
 .NOTES
    AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
    LASTEDIT: October 22, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
-    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature
+    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
+   
    August 21, 2019 1.2   
     - Improved efficiency for skipping invalid resources on analysis
     - Added Tenant to bypass subscription listing and go against all subs in current AD tenant
