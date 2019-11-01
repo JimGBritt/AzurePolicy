@@ -1,12 +1,3 @@
----
-title: Step by Step on Using the Create-AzDiagPolicy.ps1 PowerShell script
-description: Step by step process to cover how to leverage the Create-AzDiagPolicy.ps1 to create Azure Diagnostic Policies supporitng Log Analytics and Event Hubs.
-author: jimgbritt
-ms.author: jbritt
-ms.date: 11/01/2019
-ms.topic: conceptual
-ms.service: cloud management
----
 # OVERVIEW OF CREATE-AZDIAGPOLICY.PS1
 
 **Create-AzDiagPolicy.ps1** is a script that creates Azure Custom Policies supporting Azure resource types that support Azure Diagnostics logs and metrics.  Policies can be created for both Event Hub and Log Analytics sink points with this script.  In addition, this script will only provide the policies for the resource types you have within the Azure Subscription that you provide either via the cmdline parameter -SubscriptionId or by selecting a subscription from the menu provided.  
@@ -35,6 +26,7 @@ Examples of how to use the script can be found by executing the following from t
 ```
 ### Exporting Event Hub and Log Analytics Policies
 The following parameters will export Event Hub and Log Analytics Policies for Azure Diagnostics to a relative path of **.\PolicyExports** and validate all JSON export content as a last step.
+
 ```azurepowershell-interactive
   .\Create-AzDiagPolicy.ps1 -ExportEH -ExportLA -ExportDir .\PolicyExports -ValidateJSON -SubscriptionId "<SUBID>"
 ```
@@ -59,6 +51,38 @@ The results of this export represent a series of subfolders for each ResourceTyp
     > **Note**:
     > Each of the above files are required and leveraged to create a custom Azure Policy in Azure via CLI or PowerShell (shown next)
 
+Opening up and reviewing the **azurepolicy.json** artifact will provide you details on the structure and properties of the newly created custom Azure Policy.
+![policy view VS Code](./media/policy-view-vscode.png)
+
+## Importing the Custom Policies Into Azure Policy
+ Next, the below shows you an example of how you can leverage the created policy artifacts to import directly into Azure Policy.
+
+![Menu ResourceTypes](./media/import-policies.png)
+
+Example script snippit below
+```azurepowershell-interactive
+Select-AzSubscription -SubscriptionName jbritt
+$definition = New-AzPolicyDefinition -Name "apply-diagnostic-setting-azsql-loganalytics" `
+ -Metadata '{ "category":"Monitoring" }' `
+ -DisplayName "[Demo]Apply Diagnostic Settings for Azure SQL to a Log Analytics Workspace" `
+ -description "This policy automatically deploys diagnostic settings for Azure SQL to point to a Log Analytics Workspace." `
+ -Policy '.\PolicyExports\Apply-Diag-Settings-LA-Microsoft.Sql-servers-databases\azurepolicy.rules.json' `
+ -Parameter '.\PolicyExports\Apply-Diag-Settings-LA-Microsoft.Sql-servers-databases\azurepolicy.parameters.json' 
+$definition
+```
+  > **Note**:
+  > Pay close attention to the **-Metadata** parameter indicating the proper way to set a category in Azure Policy so it can be searched and sorted once imported.
+
+## Reviewing Your Imported Policy
+Once you've imported your custom policy to the Azure Policy environment, you can located it by going to **Azure Policy / Definitions** and searching on the **DisplayName** you provided in the previous example.
+![Azure Policy View 1](./media/view-policy1.png)
+
+Finally - you can select the policy to review the actual contents (JSON) within and how it is organized.
+![Azure Policy View 2](./media/view-policy2.png)
+
+From here you can assign this individual policy to a scope (Subscription/Management Group / Resource Group) to enforce it within your environment.
+
 ## See also
 
 - [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
+- [Tutorial: Create and manage policies to enforce compliance](https://docs.microsoft.com/en-us/azure/governance/policy/tutorials/create-and-manage)
