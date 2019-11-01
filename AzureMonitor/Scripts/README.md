@@ -13,7 +13,7 @@ ms.service: cloud management
 
 * Optionally you can supply a tenant switch to scan your entire Azure AD Tenant.  
 
-    > [!NOTE]
+    > **Note**:
     > Please use caution when using this option as it will take quite some time to scan thousands of subscriptions!
 
 
@@ -38,11 +38,11 @@ The following parameters will export Event Hub and Log Analytics Policies for Az
 ```azurepowershell-interactive
   .\Create-AzDiagPolicy.ps1 -ExportEH -ExportLA -ExportDir .\PolicyExports -ValidateJSON -SubscriptionId "<SUBID>"
 ```
-![ScriptLaunch](./media/scriptlaunch.png)
+![ScriptLaunch](./media/ScriptLaunch.png)
 
 You are then prompted with a list of resourceTypes to choose from. You can select “22” below to export all policies for all resourceTypes detected or you can simply select the one you care about.  You can also provide that on cmdline via parameter (-ExportAll).
 
-![Menu ResourceTypes](./media/menu-resourcetypes.png)
+![Menu ResourceTypes](./media/menu-resourceTypes.png)
 
 Once you've selected your option and pressed enter, the details of the export / creation of Azure Policy files and optional validation is displayed.
 
@@ -56,7 +56,7 @@ The results of this export represent a series of subfolders for each ResourceTyp
 - azurepolicy.parameters.json : This file represents the parameters for your policy 
 - azurepolicy.rules.json: This file has all the rules that your policy is leveraging to go against Azure for compliance evaluation 
 
-    > [!NOTE]
+    > **Note**:
     > Each of the above files are required and leveraged to create a custom Azure Policy in Azure via CLI or PowerShell (shown next)
 
 
@@ -64,7 +64,7 @@ at-is-policy-complianceResourceDetailed.png)
 
 ## See also
 
-- [What is Azure Policy and How Should We Use It](./what-is-policy.md)
+- [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
 - [Performing Non-Compliant Remediations Using Policy](./performing-non-compliant-remediations.md)
 - [Querying Azure Resource Graph (ARG) and Generating Policies](./policies-with-resource-graph.md)
 - [Creating a Governed Azure Environment at Scale Using Blueprints](./creating-a-governed-azure-environment.md)
