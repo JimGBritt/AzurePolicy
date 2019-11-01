@@ -59,13 +59,6 @@ The results of this export represent a series of subfolders for each ResourceTyp
     > **Note**:
     > Each of the above files are required and leveraged to create a custom Azure Policy in Azure via CLI or PowerShell (shown next)
 
-
-at-is-policy-complianceResourceDetailed.png)
-
 ## See also
 
 - [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
-- [Performing Non-Compliant Remediations Using Policy](./performing-non-compliant-remediations.md)
-- [Querying Azure Resource Graph (ARG) and Generating Policies](./policies-with-resource-graph.md)
-- [Creating a Governed Azure Environment at Scale Using Blueprints](./creating-a-governed-azure-environment.md)
-- [Compliance Validation Checks in Your CI\CD Pipeline](./compliance-validation.md)
