@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 1.3
+.VERSION 1.4
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,9 +26,9 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 23, 2019 1.3
-    - Added parameter for "all locations" for Log Analytics based policies
-    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
+November 06, 2019 1.4
+    - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
+    - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
 #>
 
 <#  
@@ -120,7 +120,11 @@ October 23, 2019 1.3
 
 .NOTES
    AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 23, 2019 1.3
+   LASTEDIT: November 06, 2019 1.4
+    - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
+    - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
+   
+   October 23, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
     - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
    
@@ -430,7 +434,7 @@ $JSONRULES = @'
                         ]
                     },
                     "roleDefinitionIds": [
-                        "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                        "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
                     "deployment": {
                         "properties": {
@@ -587,7 +591,7 @@ $JSONRULES = @'
                         ]
                     },
                     "roleDefinitionIds": [
-                        "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                        "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
                     "deployment": {
                         "properties": {
