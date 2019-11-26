@@ -152,6 +152,7 @@ November 06, 2019 1.4
 
 .LINK
     This script posted to and discussed at the following locations:
+    https://aka.ms/AzPolicyScripts
 #>
 
 param
@@ -199,10 +200,34 @@ param
     [switch]$Tenant=$False,
 
     # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
-    [switch]$AllRegions=$False
+    [switch]$AllRegions=$False,
+
+    # Management Group switch to allow for scanning all subs in a management group (instead of tenant wide or sub only)
+    [switch]$ManagementGroup=$False,
+
+    # Management Group ID to scan (if left blank - will build list and prompt for selection if $ManagementGroup switch is used)
+    [string]$ManagementGroupID
 
 )
 # FUNCTIONS
+# Build out the body for the GET / PUT request via REST API
+function BuildBody
+(
+    [parameter(mandatory=$True)]
+    [string]$method
+)
+{
+    $BuildBody = @{
+    Headers = @{
+        Authorization = "Bearer $($token.AccessToken)"
+        'Content-Type' = 'application/json'
+    }
+    Method = $Method
+    UseBasicParsing = $true
+    }
+    $BuildBody
+}  
+
 # Get the ResourceType listing from all ResourceTypes capable in this subscription
 # to be sent to log analytics - use "-ResourceType" param to bypass
 function Get-ResourceType (
@@ -1040,7 +1065,7 @@ catch
 
 # Authenticate to Azure if not already authenticated 
 # Ensure this is the subscription where your Azure Resources are you want to send diagnostic data from
-If($AzureLogin -and !($SubscriptionID) -and !($Tenant))
+If($AzureLogin -and !($SubscriptionID) -and !($Tenant) -and !($ManagementGroup))
 {
     [array]$SubscriptionArray = Add-IndexNumberToArray (Get-AzSubscription) 
     [int]$SelectedSub = 0
@@ -1083,7 +1108,7 @@ If($AzureLogin -and !($SubscriptionID) -and !($Tenant))
         [guid]$SubscriptionID = $($SubscriptionArray[$SelectedSub - 1].ID)
     }
 }
-if($SubscriptionId -and !($Tenant))
+if($SubscriptionId -and !($Tenant) -and !($ManagementGroup))
 {
     Write-Host "Selecting Azure Subscription: $($SubscriptionID.Guid) ..." -ForegroundColor Cyan
     $Null = Select-AzSubscription -SubscriptionId $SubscriptionID.Guid
@@ -1091,6 +1116,65 @@ if($SubscriptionId -and !($Tenant))
 if($Tenant)
 {
     $SubScriptionsToProcess = Get-AzSubscription -TenantId $($token).TenantId
+}
+# Documentation needed  ************************
+If(!($ManagementGroupID) -and $ManagementGroup)
+{
+    [array]$MgtGroupArray = Add-IndexNumberToArray (Get-AzManagementGroup)
+    if(!$MgtGroupArray)
+    {
+        Write-host "Please make sure you have Management Groups that are accessible"
+        exit 1
+    }
+    [int]$SelectedMG = 0
+
+    # use the current Managment Group if there is only one MG available
+    if ($MgtGroupArray.Count -eq 1) 
+    {
+        $SelectedMG = 1
+    }
+    # Get Management Group if one isn't provided
+    while($SelectedMG -gt $MgtGroupArray.Count -or $SelectedMG -lt 1)
+    {
+        Write-host "Please select a Management Group from the list below"
+        $MgtGroupArray | select "#", Name, DisplayName, Id | ft
+        try
+        {
+            write-host "If you don't see your ManagementGroupID try using the parameter -ManagementGroupID" -ForegroundColor Cyan
+            $SelectedMG = Read-Host "Please enter a selection from 1 to $($MgtGroupArray.count)"
+        }
+        catch
+        {
+            Write-Warning -Message 'Invalid option, please try again.'
+        }
+    }
+    if($($MgtGroupArray[$SelectedMG - 1].Name))
+    {
+        $ManagementGroupID = $($MgtGroupArray[$SelectedMG - 1].Name)
+    }
+    
+    write-verbose "You Selected Management Group: $ManagementGroupID"
+    Write-Host "Selecting Management Group: $ManagementGroupID ..." -ForegroundColor Cyan
+}
+#************************
+
+if($ManagementGroup)
+{
+    $SubScriptionsToProcess =@()
+    if($ManagementGroupID)
+    {
+        $GetBody = BuildBody -method "GET"
+        $MGSubsDetailsURI = "https://management.azure.com/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
+        $GetResults = (Invoke-RestMethod -uri $MGSubsDetailsURI @GetBody).value
+        foreach($Result in $GetResults| Where-Object {$_.type -eq "/subscriptions"})
+        {
+            $SubScriptionsToProcess += $Result 
+        }
+    }
+    else {
+        Write-Host "No ManagementGroupID found - ERROR!"
+    }
+    
 }
 
 # Determine which resourcetype to search on
@@ -1159,14 +1243,25 @@ IF($($ExportEH) -or ($ExportLA))
                     $DiagnosticCapable = Add-IndexNumberToArray (Get-ResourceType -allResources $ResourcesToCheck).where({$_.Logs -eq $True}) 
                 }
             }
-            elseif($Tenant)
+            elseif($Tenant -or ($ManagementGroup -and $ManagementGroupID))
             {
-                Write-Host "Gathering a list of monitorable Resource Types from Azure AD Tenant " -ForegroundColor Cyan
+                if($Tenant){Write-Host "Gathering a list of monitorable Resource Types from Azure AD Tenant " -ForegroundColor Cyan}
+                if($ManagementGroup){Write-Host "Gathering a list of monitorable Resource Types from Management Group $($ManagementGroupID) " -ForegroundColor Cyan}
                 Write-Host "A total of $($SubScriptionsToProcess.count) subscriptions to process..."
                 foreach($Sub in $SubScriptionsToProcess)
                 {
-                    $SelectedSub = Select-AzSubscription -SubscriptionID $($Sub.SubscriptionId)
-                    Write-Host "Analyzing Subscription: $($SelectedSub.Subscription.Name)"
+                    if($Tenant)
+                    {
+                        $SubIDToProcess = $($Sub.SubscriptionId)
+                        $SubName = $($Sub.Name)
+                    }
+                    if($ManagementGroup)
+                    {
+                        $SubIDToProcess = $Sub.Name 
+                        $SubName = $Sub.properties.displayName
+                    }
+                    $SelectedSub = Select-AzSubscription -SubscriptionID $SubIDToProcess
+                    Write-Host "Analyzing Subscription: $SubName"
                     $ResourcesToCheck = Get-AzResource
                     if($ResourcesToCheck)
                     {                    
