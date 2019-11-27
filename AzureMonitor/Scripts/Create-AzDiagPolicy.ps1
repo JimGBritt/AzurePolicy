@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 1.3
+.VERSION 1.4
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,9 +26,13 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 23, 2019 1.3
-    - Added parameter for "all locations" for Log Analytics based policies
-    - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
+November 27, 2019 1.4
+    - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
+    - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
+    - Added Parameter Sets to initial parameters to refine experience
+
+    - Added an option for Management Group as a scope providing a bit more flexiblity when it comes to scanning for resourceTypes supporting Diags.
+    - Special tanks to Sam El-Anis (Microsoft) https://twitter.com/SamElAnis for the idea on this one!
 #>
 
 <#  
@@ -70,16 +74,23 @@ October 23, 2019 1.3
     If specified will do a post export validation recursively against the export directory or will validate JSONs recursively in current script
     directory and subfolders or exportdirectory (if specified).
 
- .PARAMETER Tenant
+.PARAMETER Tenant
     Use the -Tenant parameter to bypass the subscriptionID requirement
     Note: Cannot use in conjunction with -SubscriptionID
 
- .PARAMETER LogPolicyOnly
+.PARAMETER LogPolicyOnly
     Use the -LogPolicyOnly parameter to export Azure Policies for resourceTypes that support Logs (bypass those that only support Metrics)
 
- .PARAMETER AllRegions
+.PARAMETER AllRegions
     This AllRegions switch can be used to bypass the "location" check / parameter in the Azure Policies for Log Analytics.  
     Note: This switch does not support EventHub based policies due to the region requirement for EventHubs and Azure Diagnostic settings
+ 
+.PARAMETER ManagementGroup
+    This ManagementGroup switch can be used to change scope for scanning for resourceTypes that suppport Azure Diags to be at the Management Group
+ 
+.PARAMETER ManagementGroupID
+    This parameter can be provided along with the ManagementGroup switch to predefine which MG you want to scan.  If this parameter is not provided
+    the list of Management Groups you have access to will be presented in a menu you can then select. 
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
@@ -116,11 +127,26 @@ October 23, 2019 1.3
 .\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -Tenant -AllRegions
   Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
   and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
-  requirements for the exported Log Analytics policies.
+  requirements for the exported Log Analytics policies. The scope for this export will be at the Azure AD tenant level.
+
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions
+  Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
+  and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
+  requirements for the exported Log Analytics policies. The scope for this export will be at the Management Group level.  If
+  ManagementGroupID is left off, a menu will be provided during execution of the script to select one.
 
 .NOTES
-   AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 23, 2019 1.3
+   AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   LASTEDIT: November 27, 2019 1.4
+    - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
+    - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
+    - Added Parameter Sets to initial parameters to refine experience
+
+    - Added an option for Management Group as a scope providing a bit more flexiblity when it comes to scanning for resourceTypes supporting Diags.
+    - Special tanks to Sam El-Anis (Microsoft) https://twitter.com/SamElAnis for the idea on this one!
+   
+   October 23, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
     - Special thanks to Dimitri Lider (Microsoft) for his input on this feature! Keep the ideas coming! :)
    
@@ -148,57 +174,132 @@ October 23, 2019 1.3
 
 .LINK
     This script posted to and discussed at the following locations:
+    https://aka.ms/AzPolicyScripts
 #>
+
+[cmdletbinding(
+        DefaultParameterSetName='Default'
+    )]
 
 param
 (
+    
+    # Export Directory Path for Artifacts - if not set - will default to script directory
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
+    [string]$ExportDir,
+    
     # Export all policies without prompting - default is false
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportAll=$False,
 
     # Export Event Hub Specific Policies
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
     [switch]$ExportEH=$False,
 
     # Export Log Analytics Specific Policies
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportLA=$False,
 
     # Validate all exported policies to ensure they are proper JSON
     [Parameter(Mandatory=$False)]
     [switch]$ValidateJSON=$False,    
 
-    # Provide SubscriptionID to bypass subscription listing
-    [Parameter(Mandatory=$False)]    
-    [guid]$SubscriptionId,
-
     # Add ResourceType to reduce scope to Resource Type instead of entire list of resources to scan
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceType,
 
     # Add a ResourceGroup name to reduce scope from entire Azure Subscription to RG
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceGroupName,
 
     # Add a ResourceName name to reduce scope from entire Azure Subscription to specific named resource
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceName,
 
-    # Export Directory Path for Artifacts - if not set - will default to script directory
-    [Parameter(Mandatory=$False)]
-    [string]$ExportDir,
-
     # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$LogPolicyOnly=$False,
 
+    # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
+    [switch]$AllRegions=$False,
+
+    # Provide SubscriptionID to bypass subscription listing
+    [Parameter(ParameterSetName='Subscription')]
+    [guid]$SubscriptionId,
+
     # Tenant switch to bypass subscriptionId requirement
+    [Parameter(ParameterSetName='Tenant')]
     [switch]$Tenant=$False,
 
-    # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
-    [switch]$AllRegions=$False
+    # Management Group switch to allow for scanning all subs in a management group (instead of tenant wide or sub only)
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [switch]$ManagementGroup=$False,
+
+    # Management Group ID to scan (if left blank - will build list and prompt for selection if $ManagementGroup switch is used)
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [string]$ManagementGroupID
 
 )
+
 # FUNCTIONS
+# Build out the body for the GET / PUT request via REST API
+function BuildBody
+(
+    [parameter(mandatory=$True)]
+    [string]$method
+)
+{
+    $BuildBody = @{
+    Headers = @{
+        Authorization = "Bearer $($token.AccessToken)"
+        'Content-Type' = 'application/json'
+    }
+    Method = $Method
+    UseBasicParsing = $true
+    }
+    $BuildBody
+}  
+
 # Get the ResourceType listing from all ResourceTypes capable in this subscription
 # to be sent to log analytics - use "-ResourceType" param to bypass
 function Get-ResourceType (
@@ -430,7 +531,7 @@ $JSONRULES = @'
                         ]
                     },
                     "roleDefinitionIds": [
-                        "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                        "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
                     "deployment": {
                         "properties": {
@@ -587,7 +688,7 @@ $JSONRULES = @'
                         ]
                     },
                     "roleDefinitionIds": [
-                        "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                        "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
                     "deployment": {
                         "properties": {
@@ -1036,7 +1137,7 @@ catch
 
 # Authenticate to Azure if not already authenticated 
 # Ensure this is the subscription where your Azure Resources are you want to send diagnostic data from
-If($AzureLogin -and !($SubscriptionID) -and !($Tenant))
+If($AzureLogin -and !($SubscriptionID) -and !($Tenant) -and !($ManagementGroup))
 {
     [array]$SubscriptionArray = Add-IndexNumberToArray (Get-AzSubscription) 
     [int]$SelectedSub = 0
@@ -1079,7 +1180,7 @@ If($AzureLogin -and !($SubscriptionID) -and !($Tenant))
         [guid]$SubscriptionID = $($SubscriptionArray[$SelectedSub - 1].ID)
     }
 }
-if($SubscriptionId -and !($Tenant))
+if($SubscriptionId -and !($Tenant) -and !($ManagementGroup))
 {
     Write-Host "Selecting Azure Subscription: $($SubscriptionID.Guid) ..." -ForegroundColor Cyan
     $Null = Select-AzSubscription -SubscriptionId $SubscriptionID.Guid
@@ -1087,6 +1188,65 @@ if($SubscriptionId -and !($Tenant))
 if($Tenant)
 {
     $SubScriptionsToProcess = Get-AzSubscription -TenantId $($token).TenantId
+}
+# Documentation needed  ************************
+If(!($ManagementGroupID) -and $ManagementGroup)
+{
+    [array]$MgtGroupArray = Add-IndexNumberToArray (Get-AzManagementGroup)
+    if(!$MgtGroupArray)
+    {
+        Write-host "Please make sure you have Management Groups that are accessible"
+        exit 1
+    }
+    [int]$SelectedMG = 0
+
+    # use the current Managment Group if there is only one MG available
+    if ($MgtGroupArray.Count -eq 1) 
+    {
+        $SelectedMG = 1
+    }
+    # Get Management Group if one isn't provided
+    while($SelectedMG -gt $MgtGroupArray.Count -or $SelectedMG -lt 1)
+    {
+        Write-host "Please select a Management Group from the list below"
+        $MgtGroupArray | select "#", Name, DisplayName, Id | ft
+        try
+        {
+            write-host "If you don't see your ManagementGroupID try using the parameter -ManagementGroupID" -ForegroundColor Cyan
+            $SelectedMG = Read-Host "Please enter a selection from 1 to $($MgtGroupArray.count)"
+        }
+        catch
+        {
+            Write-Warning -Message 'Invalid option, please try again.'
+        }
+    }
+    if($($MgtGroupArray[$SelectedMG - 1].Name))
+    {
+        $ManagementGroupID = $($MgtGroupArray[$SelectedMG - 1].Name)
+    }
+    
+    write-verbose "You Selected Management Group: $ManagementGroupID"
+    Write-Host "Selecting Management Group: $ManagementGroupID ..." -ForegroundColor Cyan
+}
+#************************
+
+if($ManagementGroup)
+{
+    $SubScriptionsToProcess =@()
+    if($ManagementGroupID)
+    {
+        $GetBody = BuildBody -method "GET"
+        $MGSubsDetailsURI = "https://management.azure.com/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
+        $GetResults = (Invoke-RestMethod -uri $MGSubsDetailsURI @GetBody).value
+        foreach($Result in $GetResults| Where-Object {$_.type -eq "/subscriptions"})
+        {
+            $SubScriptionsToProcess += $Result 
+        }
+    }
+    else {
+        Write-Host "No ManagementGroupID found - ERROR!"
+    }
+    
 }
 
 # Determine which resourcetype to search on
@@ -1155,14 +1315,25 @@ IF($($ExportEH) -or ($ExportLA))
                     $DiagnosticCapable = Add-IndexNumberToArray (Get-ResourceType -allResources $ResourcesToCheck).where({$_.Logs -eq $True}) 
                 }
             }
-            elseif($Tenant)
+            elseif($Tenant -or ($ManagementGroup -and $ManagementGroupID))
             {
-                Write-Host "Gathering a list of monitorable Resource Types from Azure AD Tenant " -ForegroundColor Cyan
+                if($Tenant){Write-Host "Gathering a list of monitorable Resource Types from Azure AD Tenant " -ForegroundColor Cyan}
+                if($ManagementGroup){Write-Host "Gathering a list of monitorable Resource Types from Management Group $($ManagementGroupID) " -ForegroundColor Cyan}
                 Write-Host "A total of $($SubScriptionsToProcess.count) subscriptions to process..."
                 foreach($Sub in $SubScriptionsToProcess)
                 {
-                    $SelectedSub = Select-AzSubscription -SubscriptionID $($Sub.SubscriptionId)
-                    Write-Host "Analyzing Subscription: $($SelectedSub.Subscription.Name)"
+                    if($Tenant)
+                    {
+                        $SubIDToProcess = $($Sub.SubscriptionId)
+                        $SubName = $($Sub.Name)
+                    }
+                    if($ManagementGroup)
+                    {
+                        $SubIDToProcess = $Sub.Name 
+                        $SubName = $Sub.properties.displayName
+                    }
+                    $SelectedSub = Select-AzSubscription -SubscriptionID $SubIDToProcess
+                    Write-Host "Analyzing Subscription: $SubName"
                     $ResourcesToCheck = Get-AzResource
                     if($ResourcesToCheck)
                     {                    
