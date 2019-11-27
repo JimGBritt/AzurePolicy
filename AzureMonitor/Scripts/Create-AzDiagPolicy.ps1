@@ -26,9 +26,13 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 06, 2019 1.4
+November 27, 2019 1.4
     - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
     - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
+    - Added Parameter Sets to initial parameters to refine experience
+
+    - Added an option for Management Group as a scope providing a bit more flexiblity when it comes to scanning for resourceTypes supporting Diags.
+    - Special tanks to Sam El-Anis (Microsoft) https://twitter.com/SamElAnis for the idea on this one!
 #>
 
 <#  
@@ -70,16 +74,23 @@ November 06, 2019 1.4
     If specified will do a post export validation recursively against the export directory or will validate JSONs recursively in current script
     directory and subfolders or exportdirectory (if specified).
 
- .PARAMETER Tenant
+.PARAMETER Tenant
     Use the -Tenant parameter to bypass the subscriptionID requirement
     Note: Cannot use in conjunction with -SubscriptionID
 
- .PARAMETER LogPolicyOnly
+.PARAMETER LogPolicyOnly
     Use the -LogPolicyOnly parameter to export Azure Policies for resourceTypes that support Logs (bypass those that only support Metrics)
 
- .PARAMETER AllRegions
+.PARAMETER AllRegions
     This AllRegions switch can be used to bypass the "location" check / parameter in the Azure Policies for Log Analytics.  
     Note: This switch does not support EventHub based policies due to the region requirement for EventHubs and Azure Diagnostic settings
+ 
+.PARAMETER ManagementGroup
+    This ManagementGroup switch can be used to change scope for scanning for resourceTypes that suppport Azure Diags to be at the Management Group
+ 
+.PARAMETER ManagementGroupID
+    This parameter can be provided along with the ManagementGroup switch to predefine which MG you want to scan.  If this parameter is not provided
+    the list of Management Groups you have access to will be presented in a menu you can then select. 
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
@@ -116,13 +127,24 @@ November 06, 2019 1.4
 .\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -Tenant -AllRegions
   Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
   and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
-  requirements for the exported Log Analytics policies.
+  requirements for the exported Log Analytics policies. The scope for this export will be at the Azure AD tenant level.
+
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportEH -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions
+  Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
+  and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
+  requirements for the exported Log Analytics policies. The scope for this export will be at the Management Group level.  If
+  ManagementGroupID is left off, a menu will be provided during execution of the script to select one.
 
 .NOTES
-   AUTHOR: Microsoft Log Analytics Team / Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: November 06, 2019 1.4
+   AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   LASTEDIT: November 27, 2019 1.4
     - Updated RoleDefinitionID for Log Analytics based policies to be "Log Analytics Contributor"
     - Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) for their input on this update! Keep the ideas coming! :)
+    - Added Parameter Sets to initial parameters to refine experience
+
+    - Added an option for Management Group as a scope providing a bit more flexiblity when it comes to scanning for resourceTypes supporting Diags.
+    - Special tanks to Sam El-Anis (Microsoft) https://twitter.com/SamElAnis for the idea on this one!
    
    October 23, 2019 1.3
     - Added parameter for "all locations" for Log Analytics based policies
@@ -155,60 +177,110 @@ November 06, 2019 1.4
     https://aka.ms/AzPolicyScripts
 #>
 
+[cmdletbinding(
+        DefaultParameterSetName='Default'
+    )]
+
 param
 (
+    
+    # Export Directory Path for Artifacts - if not set - will default to script directory
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
+    [string]$ExportDir,
+    
     # Export all policies without prompting - default is false
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportAll=$False,
 
     # Export Event Hub Specific Policies
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
     [switch]$ExportEH=$False,
 
     # Export Log Analytics Specific Policies
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportLA=$False,
 
     # Validate all exported policies to ensure they are proper JSON
     [Parameter(Mandatory=$False)]
     [switch]$ValidateJSON=$False,    
 
-    # Provide SubscriptionID to bypass subscription listing
-    [Parameter(Mandatory=$False)]    
-    [guid]$SubscriptionId,
-
     # Add ResourceType to reduce scope to Resource Type instead of entire list of resources to scan
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceType,
 
     # Add a ResourceGroup name to reduce scope from entire Azure Subscription to RG
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceGroupName,
 
     # Add a ResourceName name to reduce scope from entire Azure Subscription to specific named resource
-    [Parameter(Mandatory=$False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [string]$ResourceName,
 
-    # Export Directory Path for Artifacts - if not set - will default to script directory
-    [Parameter(Mandatory=$False)]
-    [string]$ExportDir,
-
     # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$LogPolicyOnly=$False,
 
-    # Tenant switch to bypass subscriptionId requirement
-    [switch]$Tenant=$False,
-
     # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$AllRegions=$False,
 
+    # Provide SubscriptionID to bypass subscription listing
+    [Parameter(ParameterSetName='Subscription')]
+    [guid]$SubscriptionId,
+
+    # Tenant switch to bypass subscriptionId requirement
+    [Parameter(ParameterSetName='Tenant')]
+    [switch]$Tenant=$False,
+
     # Management Group switch to allow for scanning all subs in a management group (instead of tenant wide or sub only)
+    [Parameter(ParameterSetName='ManagementGroup')]
     [switch]$ManagementGroup=$False,
 
     # Management Group ID to scan (if left blank - will build list and prompt for selection if $ManagementGroup switch is used)
+    [Parameter(ParameterSetName='ManagementGroup')]
     [string]$ManagementGroupID
 
 )
+
 # FUNCTIONS
 # Build out the body for the GET / PUT request via REST API
 function BuildBody
