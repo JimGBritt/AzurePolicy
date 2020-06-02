@@ -239,8 +239,6 @@ param
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='LogAnalytics')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
     [string]$ExportDir,
     
     # Export all policies without prompting - default is false
@@ -349,7 +347,7 @@ param
     
     # Specify your output file name for the ARM Template Policy Initiative.  If not used, ARM-Template-azurepolicyinit.json will be used
     [Parameter(Mandatory=$False)]
-    [string]$TemplateFileName=$False
+    [string]$TemplateFileName
 
 )
 
