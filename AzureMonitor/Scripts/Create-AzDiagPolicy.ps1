@@ -1451,6 +1451,12 @@ IF(!$($ExportEH) -and !($ExportLA) -and !($ValidateJSON))
     exit
 }
 
+if($ExportInitiative -and $ExportEH -and $ExportLA)
+{
+    Write-host "Initiative Export option does not support Log Analytics and Event Hub Policies together.  Please choose parameter -ExportLA or -ExportEH only" -ForegroundColor Yellow
+    break
+}
+
 If(!($ExportDir))
 {
     $ExportDir = $CurrentDir
