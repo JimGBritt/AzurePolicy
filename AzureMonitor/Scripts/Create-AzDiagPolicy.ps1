@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 01, 2020 2.0
+June 02, 2020 2.0
 Significant Updates this version which pushed it to 2.0!
  * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
  
@@ -159,7 +159,7 @@ Significant Updates this version which pushed it to 2.0!
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: June 01, 2020 2.0
+   LASTEDIT: June 02, 2020 2.0
     Significant Updates this version which pushed it to 2.0!
     * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
     * Another special call out to Kristian Nese @KristianNese (https://github.com/krnese) and Chris Eggert (https://github.com/pilor) @pilor 
@@ -323,7 +323,7 @@ param
 
     # Provide SubscriptionID to bypass subscription listing
     [Parameter(ParameterSetName='Subscription')]
-    [guid]$SubscriptionId,
+    [string]$SubscriptionId,
 
     # Tenant switch to bypass subscriptionId requirement
     [Parameter(ParameterSetName='Tenant')]
@@ -1538,7 +1538,7 @@ If($AzureLogin -and !($SubscriptionID) -and !($Tenant) -and !($ManagementGroup))
 if($SubscriptionId -and !($Tenant) -and !($ManagementGroup))
 {
     try{
-        $SubscriptionToUse = Select-AzSubscription -SubscriptionId $SubscriptionID.Guid
+        $SubscriptionToUse = Select-AzSubscription -Subscription $SubscriptionId
         Write-Host "Selecting Azure Subscription: $($SubscriptionToUse.Subscription.Name) ..." -ForegroundColor Cyan
     }
     catch{
@@ -1666,7 +1666,7 @@ IF($($ExportEH) -or ($ExportLA))
         {
             if($SubscriptionId -and !($Tenant))
             {
-                Write-Host "Gathering a list of monitorable Resource Types from Azure Subscription ID " -NoNewline -ForegroundColor Cyan
+                Write-Host "Gathering a list of monitorable Resource Types from Azure Subscription " -NoNewline -ForegroundColor Cyan
                 Write-Host "$($SubscriptionToUse.Subscription.Name)..." -ForegroundColor Yellow
                 
                 # If we only want log policies - only export those otherwise export all
