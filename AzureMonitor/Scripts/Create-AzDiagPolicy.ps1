@@ -113,6 +113,19 @@ Significant Updates this version which pushed it to 2.0!
     This parameter can be provided along with the ManagementGroup switch to predefine which MG you want to scan.  If this parameter is not provided
     the list of Management Groups you have access to will be presented in a menu you can then select. 
 
+.PARAMETER ExportInitiative
+    This ExportInitiative Switch determines if you are exporting a Policy Initiative (ARM Template) or just raw policy files
+
+.PARAMETER InitiativeDisplayName
+    This parameter allows you to set the Policy Initiative Name so you can have two Initiatives with slighly different 
+    names leveraging the same Custom Policies underneath.  Not the policy names and Initiatives are hash values according to the
+    display name leveraged and the sink point used. Not the display name is limited to 127 chars (see https://aka.ms/AzureLimits)
+
+.PARAMETER TemplateFileName
+    This parameter allows you to determine the outputted ARM template file name for your policy initiative. This can be useful when
+    leveraged with an ADO pipeline and test automation to validate policy drift according to a baselined exported Policy Initiatve that
+    has been promoted into production versus what your environment states it should be configured as (at current state of running the script)
+
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
   Take in parameters and execute silently without prompting against the scope of a resourceType, Resource Group, with a specified subscriptionID as scope
@@ -157,6 +170,21 @@ Significant Updates this version which pushed it to 2.0!
   requirements for the exported Log Analytics policies. The scope for this export will be at the Management Group level.  If
   ManagementGroupID is left off, a menu will be provided during execution of the script to select one.
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative
+  Will leverage the specified export directory (relative to current working directory of PS console or specify fully qualified directory)
+  and will validate all JSON files to ensure they have no syntax errors.  This example also allows for bypassing the location specific 
+  requirements for the exported Log Analytics policies. The scope for this export will be at the Management Group level.  If
+  ManagementGroupID is left off, a menu will be provided during execution of the script to select one. Finally, this example provides the
+  ability to take the custom policies and write them to an ARM template Policy Initiative.  Note: you can only provide -ExportLA or -ExportEH
+  (not both) as the policy initiative requires unique parameters on assignment to coincide with the sink point you are leveraging.
+
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" -TemplateFileName
+  Similar to the previous example, this one adds additional capability of allowing you to define the display name for the Policy Initiative 
+  as well as predetermine the templatefile name for the Policy Initiative.  Note the display name is validated that it is less than 127 chars long
+  if provided.  Script will break if that value is either exceeded of the value is less than 1 char.
+  
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
    LASTEDIT: June 02, 2020 2.0
@@ -231,7 +259,6 @@ Significant Updates this version which pushed it to 2.0!
 
 param
 (
-    
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Subscription')]
@@ -241,7 +268,7 @@ param
     [string]$ExportDir,
 
     # Export all policies without prompting - default is false
-    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -249,7 +276,7 @@ param
     [switch]$ExportAll=$False,
 
     # Export Event Hub Specific Policies
-    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -257,7 +284,7 @@ param
     [switch]$ExportEH=$False,
 
     # Export Log Analytics Specific Policies
-    [Parameter(ParameterSetName='Default')]
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -265,18 +292,22 @@ param
     [switch]$ExportLA=$False,
 
     # Provide SubscriptionID to bypass subscription listing
+    [Parameter(Mandatory=$False)]
     [Parameter(ParameterSetName='Subscription')]
     [string]$SubscriptionId,
 
     # Tenant switch to bypass subscriptionId requirement
+    [Parameter(Mandatory=$False)]
     [Parameter(ParameterSetName='Tenant')]
     [switch]$Tenant=$False,
 
     # Management Group switch to allow for scanning all subs in a management group (instead of tenant wide or sub only)
+    [Parameter(Mandatory=$False)]
     [Parameter(ParameterSetName='ManagementGroup')]
     [switch]$ManagementGroup=$False,
 
     # Management Group ID to scan (if left blank - will build list and prompt for selection if $ManagementGroup switch is used)
+    [Parameter(Mandatory=$False)]
     [Parameter(ParameterSetName='ManagementGroup')]
     [string]$ManagementGroupID,
 
@@ -285,6 +316,7 @@ param
     [switch]$ValidateJSON=$False,    
 
     # Switch to determine if you are going to export an ARM Initiative or all policy files.  Default is all policy files unless this switch is used
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -293,6 +325,7 @@ param
     [switch]$ExportInitiative=$False,
 
     # Specify a policy initiative display name (default will be used otherwise)
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -302,6 +335,7 @@ param
     [string]$InitiativeDisplayName,
 
     # Specify your output file name for the ARM Template Policy Initiative.  If not used, ARM-Template-azurepolicyinit.json will be used
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -1559,7 +1593,7 @@ If(!($ManagementGroupID) -and $ManagementGroup)
     while($SelectedMG -gt $MgtGroupArray.Count -or $SelectedMG -lt 1)
     {
         Write-host "Please select a Management Group from the list below"
-        $MgtGroupArray | select-object "#", Name, DisplayName, Id | ft
+        $MgtGroupArray | select-object "#", Name, DisplayName, Id | Format-Table
         try
         {
             write-host "If you don't see your ManagementGroupID try using the parameter -ManagementGroupID" -ForegroundColor Cyan

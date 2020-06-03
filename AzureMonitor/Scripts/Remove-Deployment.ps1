@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param (
-    [Parameter()]
-    [string]
-    $ARMTemplate,
-    [guid]$subscriptionId="2bb3c706-993b-41e8-9212-3a199105f5f5"
+    [Parameter(Mandatory=$True)]
+    [string]$ARMTemplate,
+    [Parameter(Mandatory=$True)]
+    [guid]$subscriptionId
 )
 $ARMTemplateToProcess = Get-Content $ARMTemplate
 $ResultSet = $ARMTemplateToProcess | ConvertFrom-Json
