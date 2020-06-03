@@ -234,22 +234,18 @@ param
     
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
-    [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='LogAnalytics')]
+    [Parameter(ParameterSetName='Export')]
     [string]$ExportDir,
-    
+
     # Export all policies without prompting - default is false
     [Parameter(ParameterSetName='Default')]
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportAll=$False,
 
     # Export Event Hub Specific Policies
@@ -258,8 +254,6 @@ param
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
     [switch]$ExportEH=$False,
 
     # Export Log Analytics Specific Policies
@@ -268,58 +262,7 @@ param
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [Parameter(ParameterSetName='LogAnalytics')]
     [switch]$ExportLA=$False,
-
-    # Add ResourceType to reduce scope to Resource Type instead of entire list of resources to scan
-    [Parameter(ParameterSetName='Export')]
-    [Parameter(ParameterSetName='Subscription')]
-    [Parameter(ParameterSetName='Tenant')]
-    [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='LogAnalytics')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [string]$ResourceType,
-
-    # Add a ResourceGroup name to reduce scope from entire Azure Subscription to RG
-    [Parameter(ParameterSetName='Export')]
-    [Parameter(ParameterSetName='Subscription')]
-    [Parameter(ParameterSetName='Tenant')]
-    [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='LogAnalytics')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [string]$ResourceGroupName,
-
-    # Add a ResourceName name to reduce scope from entire Azure Subscription to specific named resource
-    [Parameter(ParameterSetName='Export')]
-    [Parameter(ParameterSetName='Subscription')]
-    [Parameter(ParameterSetName='Tenant')]
-    [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='LogAnalytics')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [string]$ResourceName,
-
-    # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive 
-    [Parameter(ParameterSetName='Subscription')]
-    [Parameter(ParameterSetName='Tenant')]
-    [Parameter(ParameterSetName='ManagementGroup')]
-    [Parameter(ParameterSetName='LogAnalytics')]
-    [Parameter(ParameterSetName='ExportInitiative')]
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [switch]$AllRegions=$False,
-
-    # Specify a policy initiative display name (default will be used otherwise)
-    [Parameter(ParameterSetName='InitiativeDisplayName')]
-    [ValidateLength(1,127)]
-    [string]$InitiativeDisplayName,
-
-    # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
-    [Parameter(Mandatory=$False)]
-    [switch]$LogPolicyOnly=$False,
 
     # Provide SubscriptionID to bypass subscription listing
     [Parameter(ParameterSetName='Subscription')]
@@ -337,18 +280,61 @@ param
     [Parameter(ParameterSetName='ManagementGroup')]
     [string]$ManagementGroupID,
 
-    # Switch to determine if you are going to export an ARM Initiative or all policy files.  Default is all policy files unless this switch is used
-    [Parameter(Mandatory=$False)]
-    [switch]$ExportInitiative=$False,
-
     # Validate all exported policies to ensure they are proper JSON
     [Parameter(Mandatory=$False)]
-    [switch]$ValidateJSON=$False,
-    
-    # Specify your output file name for the ARM Template Policy Initiative.  If not used, ARM-Template-azurepolicyinit.json will be used
-    [Parameter(Mandatory=$False)]
-    [string]$TemplateFileName
+    [switch]$ValidateJSON=$False,    
 
+    # Switch to determine if you are going to export an ARM Initiative or all policy files.  Default is all policy files unless this switch is used
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Initiative')]
+    [switch]$ExportInitiative=$False,
+
+    # Specify a policy initiative display name (default will be used otherwise)
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Initiative')]
+    [ValidateLength(1,127)]
+    [string]$InitiativeDisplayName,
+
+    # Specify your output file name for the ARM Template Policy Initiative.  If not used, ARM-Template-azurepolicyinit.json will be used
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Initiative')]
+    [string]$TemplateFileName,
+
+    # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
+    [switch]$LogPolicyOnly=$False,
+
+    # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive
+    [switch]$AllRegions=$False,
+
+    # Add ResourceType to reduce scope to Resource Type instead of entire list of resources to scan
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [string]$ResourceType,
+
+    # Add a ResourceGroup name to reduce scope from entire Azure Subscription to RG
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [string]$ResourceGroupName,
+
+    # Add a ResourceName name to reduce scope from entire Azure Subscription to specific named resource
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [string]$ResourceName
 )
 
 # FUNCTIONS
