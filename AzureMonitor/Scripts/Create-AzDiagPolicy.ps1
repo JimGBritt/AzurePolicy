@@ -36,7 +36,7 @@ Significant Updates this version which pushed it to 2.0!
     Policy Initiative Support
     - Added support for exporting to ARM Template Policy Initiative Artifact
     -- Option for customized displayname for Initiative
-    -- Ability for Custom Azure Policies and Initiative to be idempotent due to creating a uniuque name via hash
+    -- Ability for Custom Azure Policies and Initiative to be idempotent due to creating a unique name via hash
     --- Inspiration reference http://xpertkb.com/compute-hash-string-powershell/
 
     User Experience
@@ -196,7 +196,7 @@ Significant Updates this version which pushed it to 2.0!
     Policy Initiative Support
     - Added support for exporting to ARM Template Policy Initiative Artifact
     -- Option for customized displayname for Initiative
-    -- Ability for Custom Azure Policies and Initiative to be idempotent due to creating a uniuque name via hash
+    -- Ability for Custom Azure Policies and Initiative to be idempotent due to creating a unique name via hash
     --- Inspiration reference http://xpertkb.com/compute-hash-string-powershell/
 
     User Experience
