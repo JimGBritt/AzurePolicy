@@ -913,7 +913,7 @@ $JSONRULES = @'
         }
 '@
 }
-if(!($EXportInitiative))
+if(!($ExportInitiative))
 {
     $JSONVar = @'
 {
@@ -1237,7 +1237,7 @@ $JSONRULES = @'
             }
         }
 '@
-if(!($EXportInitiative))
+if(!($ExportInitiative))
 {
     $JSONVar = @'
 {
