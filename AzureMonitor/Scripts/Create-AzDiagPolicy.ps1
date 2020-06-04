@@ -26,10 +26,14 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 02, 2020 2.0
+June 04, 2020 2.0
 Significant Updates this version which pushed it to 2.0!
  * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
- 
+
+ * A HUGE THANK YOU to the ClearDATA crew for their support in bug bashing an early iteration of this 2.0 ver script before going broadly. 
+    -- Thank you Jason Singh for leaning in on support for prioritizing review of this effort 
+    -- And for Rob Sanders (https://github.com/rwsanders) for his isolation of a breaking bug I introduced that was much more easily isolated and resolved with his support!
+
  * Another special call out to Kristian Nese @KristianNese (https://github.com/krnese) and Chris Eggert (https://github.com/pilor) @pilor 
  * for their technical review and big brain guidance related to approach and technical accuracy in the area of ARM and Policy! 
  
@@ -187,9 +191,14 @@ Significant Updates this version which pushed it to 2.0!
   
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: June 02, 2020 2.0
+   LASTEDIT: June 04, 2020 2.0
     Significant Updates this version which pushed it to 2.0!
     * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
+
+    * A HUGE THANK YOU to the ClearDATA crew for their support in bug bashing an early iteration of this 2.0 ver script before going broadly. 
+    -- Thank you Jason Singh for leaning in on support for prioritizing review of this effort 
+    -- And for Rob Sanders (https://github.com/rwsanders) for his isolation of a breaking bug I introduced that was much more easily isolated and resolved with his support!
+
     * Another special call out to Kristian Nese @KristianNese (https://github.com/krnese) and Chris Eggert (https://github.com/pilor) @pilor 
     * for their technical review and big brain guidance related to approach and technical accuracy in the area of ARM and Policy! 
 
