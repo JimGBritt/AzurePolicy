@@ -771,38 +771,6 @@ $JSONPARMS = @'
         }
 '@
 
-If(!($AllRegions))
-{
-    $locationParm = @'
-
-"azureRegions": {
-    "value": "[[parameters('azureRegions')]"
-},
-'@
-}
-else {
-    $locationParm = $Null
-}
-
-$initParams = @'
-"parameters": {
-    "logAnalytics": {
-        "value": "[[parameters('logAnalytics')]"
-    },<LOCATION PARAM>
-    "metricsEnabled": {
-        "value": "[[parameters('metricsEnabled')]"
-    },
-    "logsEnabled": {
-        "value": "[[parameters('logsEnabled')]"
-    },
-    "profileName": {
-        "value": "[[parameters('profileName')]"
-    }
-}
-'@
-
-$initParams = $initParams.Replace("<LOCATION PARAM>", $locationParm)
-
 $JSONRULES = @'
 {
             "if": {
@@ -973,6 +941,37 @@ $JSONVar = $JSONVar + $JSONType + @'
         $RuleParams = $RuleParams.Replace('"[name', '"[[name')
         $RuleParams = $RuleParams.Replace('"[concat', '"[[concat')
     }
+    If(!($AllRegions))
+    {
+        $locationParm = @'
+    
+    "azureRegions": {
+        "value": "[[parameters('azureRegions')]"
+    },
+'@
+    }
+    else {
+        $locationParm = $Null
+    }
+    
+    $initParams = @'
+    "parameters": {
+        "logAnalytics": {
+            "value": "[[parameters('logAnalytics')]"
+        },<LOCATION PARAM>
+        "metricsEnabled": {
+            "value": "[[parameters('metricsEnabled')]"
+        },
+        "logsEnabled": {
+            "value": "[[parameters('logsEnabled')]"
+        },
+        "profileName": {
+            "value": "[[parameters('profileName')]"
+        }
+    }
+'@
+    
+    $initParams = $initParams.Replace("<LOCATION PARAM>", $locationParm)
 
     # Build the separate JSON payloads into an array
     $JSONARRAY += $JSONPARMS
