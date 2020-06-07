@@ -184,7 +184,7 @@ Significant Updates this version which pushed it to 2.0!
   (not both) as the policy initiative requires unique parameters on assignment to coincide with the sink point you are leveraging.
 
 .EXAMPLE
-.\Create-AzDiagPolicy.ps1 -ExportAll -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" -TemplateFileName
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" -TemplateFileName 'ARMTemplateExport'
   Similar to the previous example, this one adds additional capability of allowing you to define the display name for the Policy Initiative 
   as well as predetermine the templatefile name for the Policy Initiative.  Note the display name is validated that it is less than 127 chars long
   if provided.  Script will break if that value is either exceeded of the value is less than 1 char.
