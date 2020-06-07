@@ -149,7 +149,7 @@ Once you have deployed your policy initiative to Azure via the exported ARM temp
 ``` azurepowershell -interactive
 .\Remove-PolicyInitDeployment.ps1 -subscriptionId '2bb3c706-993b-41e8-9212-3a199105f5f5' -ARMTemplate .\exporttest\ARM-Template-azurepolicyinit.json
 ```
-![policy init removal](./media/initremoval.png)
+![policy init removal](./media/InitRemoval.png)
 
 ## See also
 
