@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 04, 2020 2.0
+June 07, 2020 2.0
 Significant Updates this version which pushed it to 2.0!
  * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
 
@@ -191,7 +191,7 @@ Significant Updates this version which pushed it to 2.0!
   
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: June 04, 2020 2.0
+   LASTEDIT: June 07, 2020 2.0
     Significant Updates this version which pushed it to 2.0!
     * Special thanks to Dimitri Lider, and Julian Hayward (Microsoft) once again for their constant inputs on this script to improve! 
 
