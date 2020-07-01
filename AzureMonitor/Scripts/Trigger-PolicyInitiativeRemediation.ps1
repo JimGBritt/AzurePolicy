@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 30, 2020 1.0 - Initial
+July 1, 2020 1.0 - Initial
 #>
 
 <#  
@@ -73,7 +73,7 @@ June 30, 2020 1.0 - Initial
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   June 30, 2020 1.0 - Initial
+   July 1, 2020 1.0 - Initial
 
 .LINK
     This script posted to and discussed at the following locations:
