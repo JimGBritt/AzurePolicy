@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 1.1
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -26,7 +26,8 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-July 1, 2020 1.0 - Initial
+July 2, 2020 1.1 - Updates
+    Small visual bug on variable prompt when providing PolicyAssignmentId parameter value
 #>
 
 <#  
@@ -73,6 +74,9 @@ July 1, 2020 1.0 - Initial
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   July 2, 2020 1.1 - Updates
+    Small visual bug on variable prompt when providing PolicyAssignmentId parameter value
+
    July 1, 2020 1.0 - Initial
 
 .LINK
@@ -382,7 +386,7 @@ $Count = 0
 $Totalcount = $PolicyDefinitionRefIDs.Count
 
 # Use -force switch to bypass prompt
-if ($Force -OR $PSCmdlet.ShouldContinue("Create a set of remediation tasks for Policy Initiative `"$($PolicyAssignMentIDArray[$SelectedAssignmentID - 1].Properties.displayName)`". Continue?","Remediate `"$($PolicyAssignMentIDArray[$SelectedAssignmentID - 1].Properties.displayName)`" Initiative?") )
+if ($Force -OR $PSCmdlet.ShouldContinue("Create a set of remediation tasks for Policy Initiative `"$($PolicyAssignMent.Properties.displayName)`". Continue?","Remediate `"$($PolicyAssignMent.Properties.displayName)`" Initiative?") )
 {
     Foreach($PolicyDefRefID in $PolicyDefinitionRefIDs)
     {
@@ -400,7 +404,7 @@ if ($Force -OR $PSCmdlet.ShouldContinue("Create a set of remediation tasks for P
     }
 }
 else {
-    Write-Host "You have cancelled the remediation request for $($PolicyAssignMentIDArray[$SelectedAssignmentID - 1].Properties.displayName)" -ForegroundColor Yellow
+    Write-Host "You have cancelled the remediation request for $($PolicyAssignMent.Properties.displayName)" -ForegroundColor Yellow
 }
 
 # Stop "timer" to calculate total time running

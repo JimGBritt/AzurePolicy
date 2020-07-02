@@ -12,8 +12,8 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 ![ScriptFlow](./media/ScriptOverview.png)
 
 1. **Create-AzDiagPolicy.PS1**: Used to generate the policy artifacts for Azure Diagnostics or an ARM Template (Policy Initiative) all menu driven or providing parameter options to run silently
-1. **Exported Artifacts**: Use these exported artifacts
-1. **Import POlicy / Policy Initiative to Azure**: Import one by one via Azure CLI / PowerShell (policies) or deploy the ARM template export to create all policies in an initiative in seconds!
+1. **Exported Artifacts**: The artifacts that get generated from running the script.
+1. **Import Policy / Policy Initiative to Azure**: Import one by one via Azure CLI / PowerShell (policies) or deploy the ARM template export to create all policies in an initiative in seconds!
 1. **Trigger-PolicyEvaluation.PS1**: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to relfect compliance against existing resources
 1. **Trigger-PolicyInitiativeRemediation**: Leverage this script to completely remediation a policy initiative at a scope of Subscription or Management Group (creating of individual remediation jobs for each policy in a targeted assigned initiative in minutes!)
 
@@ -172,15 +172,48 @@ Once you have deployed your policy initiative to Azure via the exported ARM temp
 
 # Overview of Trigger-PolicyEvaluation.ps1
 
-Detail
+Once you've assigned the policy or policy initiative to a scope (such as to a resource group/subscription/Management Group) you'll need to wait some time for the policy assignment to run an evaluation and return compliance data.  In order to kick off this process, the trigger-policyevaluation.ps1 script can be used to jump start the evaluation in advance of the scheduled check that occurs in the Azure Policy platform.
 
-## Content
+## Triggering a Policy Evaluation
+
+The Trigger-PolicyEvaluation.PS1 has a few examples that can be viewed by executing the following
+
+```azurepowershell-interactive
+  get-help .\trigger-PolicyEvaluation.ps1 -examples
+```
+> Note: This script currently only supports resourcegroup and subscription as scopes to trigger the compliance evaluation against.  
+
+### Specifying SubscriptionId and ResourceGroup as Scope with an Interval
+
+The below example shows how to specify a specific subscriptionId as scope to trigger evaluation against.  Default looping to determine if the evaluation is complete is 10 seconds.  A value of 25 for interval is used to reduce the frequency of the check.
+
+```azurepowershell-interactive
+.\Trigger-PolicyEvaluation.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -interval 25
+```
+
+![policy evaluation](./media/trigger-policy-eval.png)
 
 # Overview of Trigger-PolicyInitiativeRemediation.PS1
 
-Detail
+Once your compliance evaluation has occurred for your Policy or Policy Initiative, you will likely want to review this compliance against expected outcomes and remediate those resources that are out of compliance. With an Azure Policy, this is pretty straightforward leveraging the ***Start-AzPolicyRemediation*** cmdlet (or via the Azure Portal Policy Remediation option).  However, in the case of a Policy Initiative, you cannot remediate the initiative, you need to remediate each policy contained within the intitiative.  This can be somewhat time consuming today via the portal and not easily tied together in automation.  
 
-## Content For Policyremediation
+## Triggering a Remediation for a Policy Initiative
+
+The **Trigger-PolicyInitiativeRemediation.PS1** script can be leveraged to remediate a Policy Initiative that has been assigned to a scope at a Subscription or Management Group.  This script evaluates the assigned Policy Initiative and ensures that all sub policies contained within recieve a remediation assignment that will kick off immediately for each policy to attempt to bring the resources to 100% compliance.
+
+### Example: Trigger remediation at Subscription Scope and provided PolicyAssignmentId (of Policy Initiative) to remediate
+
+```azurepowershell-interactive
+.\Trigger-PolicyInitiativeRemediation.ps1 -SubscriptionId jbritt -PolicyAssignmentId "/subscriptions/fd2323a9-2324-4d2a-90f6-7e6c2fe03512/providers/Microsoft.Authorization/policyAssignments/dcf9fe2078dc45799cb34a27"
+```
+![policy init remediation](./media/policy-init-remediation.png)
+
+## Reviewing Remediation Tasks
+
+Once you have successfully executed the script to remediate the Policy Initiative at your defined scope, go to the Azure Portal / Policy / Remediation to review your initiated remediation tasks and review any issues that need to be remediated manually
+
+![policy init remediation tasks](./media/remediation-tasks.png)
+  > Note: This script goes across all policies and all regions to assign remediation.  If this is not the preferred operation to take, you will need to remediate this through the portal or potentially modifying this example script to add the option of region. *Potentially a future update to the script*!
 
 ## See also
 
