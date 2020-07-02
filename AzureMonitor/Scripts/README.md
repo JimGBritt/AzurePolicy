@@ -1,3 +1,10 @@
+# TOPICS COVERED
+- [Overview of Create-AzDiagPolicy.PS1](./README.md#overview-of-create-azdiagpolicyps1)
+- [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1)
+- [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
+- [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
+
+
 # OVERVIEW OF CREATE-AZDIAGPOLICY.PS1
 
 <span style="color:dodgerBlue">**UPDATE**</span> - 
@@ -150,6 +157,9 @@ Once you have deployed your policy initiative to Azure via the exported ARM temp
 .\Remove-PolicyInitDeployment.ps1 -subscriptionId '2bb3c706-993b-41e8-9212-3a199105f5f5' -ARMTemplate .\exporttest\ARM-Template-azurepolicyinit.json
 ```
 ![policy init removal](./media/InitRemoval.png)
+
+# Overview of Trigger-PolicyEvaluation.ps1
+
 
 ## See also
 
