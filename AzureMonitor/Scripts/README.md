@@ -2,19 +2,22 @@
 
 This documentation is meant to provide a guide to the use of the scripts sourced in this repo.  These scripts are all provided as examples to be used as a starting point for assisting in the creation and management of your Azure Diagnostic Policies for your Azure Resources.
 
-1. Create-AzDiagPolicy.PS1: Used to generate the policy artifacts for Azure Diagnostics or an ARM Template (POlicy Initiative) all menu driven or providing parameter options to run silently
-1. Exported Artifacts: Use these exported artifacts
-1. Import one by one via Azure CLI / PowerShell (policies) or deploy the ARM template export to create all policies in an initiative in seconds!
-1. Trigger-PolicyEvaluation.PS1: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to relfect compliance against existing resources
-1. Trigger-PolicyInitiativeRemediation: Leverage this script to completely remediation a policy initiative at a scope of Subscription or Management Group (creating of individual remediation jobs for each policy in a targeted assigned initiative in minutes!)
-
-![ScriptFlow](./media/ScriptOverview.png)
-
 ## Topics Covered
 
 - [Overview of Create-AzDiagPolicy.PS1](./README.md#overview-of-create-azdiagpolicyps1) 
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
+
+## Flow Diagram
+1. **Create-AzDiagPolicy.PS1**: Used to generate the policy artifacts for Azure Diagnostics or an ARM Template (POlicy Initiative) all menu driven or providing parameter options to run silently
+1. **Exported Artifacts**: Use these exported artifacts
+1. **Import POlicy / Policy Initiative to Azure**: Import one by one via Azure CLI / PowerShell (policies) or deploy the ARM template export to create all policies in an initiative in seconds!
+1. **Trigger-PolicyEvaluation.PS1**: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to relfect compliance against existing resources
+1. **Trigger-PolicyInitiativeRemediation**: Leverage this script to completely remediation a policy initiative at a scope of Subscription or Management Group (creating of individual remediation jobs for each policy in a targeted assigned initiative in minutes!)
+
+   ![ScriptFlow](./media/ScriptOverview.png)
+
+
 
 # OVERVIEW OF CREATE-AZDIAGPOLICY.PS1
 
