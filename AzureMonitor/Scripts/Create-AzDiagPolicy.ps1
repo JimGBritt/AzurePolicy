@@ -65,6 +65,9 @@ June 13, 2020 2.1
 .PARAMETER ExportEH
     Export only Event Hub Policies for Azure Diagnostics
 
+.PARAMETER ExportStorage
+    Export only Storage Policies for Azure Diagnostics
+
 .PARAMETER ValidateJSON
     If specified will do a post export validation recursively against the export directory or will validate JSONs recursively in current script
     directory and subfolders or exportdirectory (if specified).
@@ -1767,10 +1770,10 @@ IF(!$($ExportEH) -and !($ExportLA) -and !($ExportStorage) -and !($ValidateJSON))
     exit
 }
 
-#Complex logic need to determine how to add storage in here
-if($ExportInitiative -and $ExportEH -and $ExportLA)
+# An initiative cannot support multiple sink points due to variance in parameters for policies
+if($ExportInitiative -and (($($ExportEH.IsPresent) + $($ExportLA.IsPresent) + $($ExportStorage.IsPresent)) -gt 1))
 {
-    Write-host "Initiative Export option does not support Log Analytics and Event Hub Policies together.  Please choose parameter -ExportLA or -ExportEH only" -ForegroundColor Yellow
+    Write-host "Initiative Export option does not support more than one sink point for Policies together.  Please choose parameter -ExportLA, -ExportStorage, or -ExportEH only when using -ExportInitiative" -ForegroundColor Yellow
     break
 }
 
