@@ -26,20 +26,20 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 13, 2020 2.1
+July 16, 2020 2.1
     Storage Added as a sink to policy and policy initiative ARM template exports
 #>
 
 <#  
 .SYNOPSIS  
-  Create a custom policy (and optional Policy Initative) to enable Azure Diagnostics and send that data to a Log Analytics Workspace or Regional Event Hub
+  Create a custom policy (and optional Policy Initative) to enable Azure Diagnostics and send that data to a Log Analytics Workspace, Regional Storage Account or Regional Event Hub
   
-  Note  This script currently supports onboarding Azure resources that support Azure Diagnostics (metrics and logs) to Log Analytics and Event Hub
+  Note  This script currently supports onboarding Azure resources that support Azure Diagnostics (metrics and logs) to Log Analytics, Event Hub, and Storage
   
 .DESCRIPTION  
   This script takes a SubscriptionID, ResourceType, ResourceGroup as parameters, analyzes the subscription or
   specific ResourceGroup defined for the resources specified in $Resources, and builds a custom policy for 
-  diagnostic metrics/logs for Event Hubs and Log Analytics as sink points for selected resource types.
+  diagnostic metrics/logs for Event Hubs, Storage and Log Analytics as sink points for selected resource types.
 
 .PARAMETER SubscriptionId
     The subscriptionID of the Azure Subscription that contains the resources you want to analyze
@@ -81,7 +81,7 @@ June 13, 2020 2.1
 
 .PARAMETER AllRegions
     This AllRegions switch can be used to bypass the "location" check / parameter in the Azure Policies for Log Analytics.  
-    Note: This switch does not support EventHub based policies due to the region requirement for EventHubs and Azure Diagnostic settings
+    Note: This switch does not support EventHub/Storage based policies due to the region requirement for EventHubs/Storage and Azure Diagnostic settings
  
 .PARAMETER ManagementGroup
     This ManagementGroup switch can be used to change scope for scanning for resourceTypes that suppport Azure Diags to be at the Management Group
@@ -116,6 +116,11 @@ June 13, 2020 2.1
   .\Create-AzDiagPolicy.ps1 -ExportEH
   Will prompt for subscriptionID to leverage for analysis, prompt for which resourceTypes to export for policies, and export the policies specific
   to Event Hub only
+
+.EXAMPLE
+  .\Create-AzDiagPolicy.ps1 -ExportStorage
+  Will prompt for subscriptionID to leverage for analysis, prompt for which resourceTypes to export for policies, and export the policies specific
+  to Storage account only  
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -ValidateJSON -ExportDir "EH-Policies"
@@ -161,10 +166,13 @@ June 13, 2020 2.1
   Similar to the previous example, this one adds additional capability of allowing you to define the display name for the Policy Initiative 
   as well as predetermine the templatefile name for the Policy Initiative.  Note the display name is validated that it is less than 127 chars long
   if provided.  Script will break if that value is either exceeded of the value is less than 1 char.
-  
+
+.\Create-AzDiagPolicy.ps1 -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
+  Same as previous example, but exporting to a storage account as a sink point.
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: June 13, 2020 2.1
+   LASTEDIT: July 16, 2020 2.1
     Storage Added as a sink to policy and policy initiative ARM template exports
 
    June 07, 2020 2.0
