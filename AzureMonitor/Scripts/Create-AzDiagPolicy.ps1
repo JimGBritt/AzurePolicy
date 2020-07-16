@@ -1770,7 +1770,7 @@ IF(!$($ExportEH) -and !($ExportLA) -and !($ExportStorage) -and !($ValidateJSON))
     exit
 }
 
-# An initiative cannot support multiple sink points due to variance in parameters for policies
+# An initiative cannot support multiple sink points due to variance in parameters for each type of policy
 if($ExportInitiative -and (($($ExportEH.IsPresent) + $($ExportLA.IsPresent) + $($ExportStorage.IsPresent)) -gt 1))
 {
     Write-host "Initiative Export option does not support more than one sink point for Policies together.  Please choose parameter -ExportLA, -ExportStorage, or -ExportEH only when using -ExportInitiative" -ForegroundColor Yellow
