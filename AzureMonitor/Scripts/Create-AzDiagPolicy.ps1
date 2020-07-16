@@ -167,6 +167,7 @@ July 16, 2020 2.1
   as well as predetermine the templatefile name for the Policy Initiative.  Note the display name is validated that it is less than 127 chars long
   if provided.  Script will break if that value is either exceeded of the value is less than 1 char.
 
+.EXAMPLE
 .\Create-AzDiagPolicy.ps1 -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but exporting to a storage account as a sink point.
 
