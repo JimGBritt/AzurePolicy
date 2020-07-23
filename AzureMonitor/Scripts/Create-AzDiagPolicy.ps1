@@ -435,8 +435,9 @@ function Get-ResourceType (
         $azEnvironment = Get-AzEnvironment -Name $Environment
 
        
-        $URI = "https://$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId)/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview"
-        
+        $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
+        Write-Host "URI: $($URI)"
+
         if ($analysis.resourceType -notcontains $resource.ResourceType)
         {
             try
@@ -449,7 +450,7 @@ function Get-ResourceType (
                 catch
                 {
                     # Uncomment below to see actual error.  Certain resources are not ResourceTypes that can support Logs and Metrics so the host error is being muted
-                    #write-host $Error[0] -ForegroundColor Red
+                    write-host $Error[0] -ForegroundColor Red
                     $Invalid = $True
                     $Logs = $False
                     $Metrics = $False
