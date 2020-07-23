@@ -65,6 +65,9 @@ Remove an Azure Policy Initiative from an Azure Subscription using an ARM Templa
 
 [CmdletBinding()]
 param (
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
+    [string]$Environment = "AzureCloud",
     [Parameter(Mandatory=$True)]
     [string]$ARMTemplate,
     [Parameter(Mandatory=$True)]
@@ -92,7 +95,7 @@ try
 }
 catch
 {
-    $null = Login-AzAccount
+    $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     $token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id} 

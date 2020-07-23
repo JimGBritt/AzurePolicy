@@ -90,6 +90,13 @@ July 2, 2020 1.1 - Updates
 
 param
 (
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Initiative')]
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
+    [string]$Environment = "AzureCloud",
     # Specify a policy initiative assignment ID
     # Example for Management Group Scope: '/providers/Microsoft.Management/managementGroups/MyManagementGroup/providers/Microsoft.Authorization/policyAssignments/pa1'
     # Example for Subscription Scope: '/subscriptions/fd2323a9-2324-4d2a-90f6-7e6c2fe03512/providers/Microsoft.Authorization/policyAssignments/17ddefc76ecd4fe5b26455bb'
@@ -178,7 +185,7 @@ try
 }
 catch
 {
-    $null = Login-AzAccount
+    $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     $token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id} 
@@ -290,8 +297,9 @@ if($ManagementGroup)
     $SubScriptionsToProcess =@()
     if($ManagementGroupID)
     {
+        $azEnvironment = Get-AzEnvironment -Name $Environment
         $GetBody = BuildBody -method "GET"
-        $MGSubsDetailsURI = "https://management.azure.com/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
+        $MGSubsDetailsURI = "https://$($azEnvironment.ResourceManagerUrl)/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
         $GetResults = (Invoke-RestMethod -uri $MGSubsDetailsURI @GetBody).value
         foreach($Result in $GetResults| Where-Object {$_.type -eq "/subscriptions"})
         {
