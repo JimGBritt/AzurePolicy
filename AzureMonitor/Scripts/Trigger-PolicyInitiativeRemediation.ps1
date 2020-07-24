@@ -299,7 +299,7 @@ if($ManagementGroup)
     {
         $azEnvironment = Get-AzEnvironment -Name $Environment
         $GetBody = BuildBody -method "GET"
-        $MGSubsDetailsURI = "https://$($azEnvironment.ResourceManagerUrl)/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
+        $MGSubsDetailsURI = "$($azEnvironment.ResourceManagerUrl)providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
         $GetResults = (Invoke-RestMethod -uri $MGSubsDetailsURI @GetBody).value
         foreach($Result in $GetResults| Where-Object {$_.type -eq "/subscriptions"})
         {

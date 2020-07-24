@@ -205,7 +205,7 @@ elseif ($ResourceGroupName)
 
 }
 $azEnvironment = Get-AzEnvironment -Name $Environment
-$PostURI = "https://$($azEnvironment.ResourceManagerUrl)/$RESOURCEID/providers/Microsoft.PolicyInsights/policyStates/latest/triggerEvaluation?api-version=2018-07-01-preview"
+$PostURI = "$($azEnvironment.ResourceManagerUrl)$RESOURCEID/providers/Microsoft.PolicyInsights/policyStates/latest/triggerEvaluation?api-version=2018-07-01-preview"
 
 try
 {
