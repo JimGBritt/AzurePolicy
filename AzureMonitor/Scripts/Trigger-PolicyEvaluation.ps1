@@ -76,6 +76,10 @@ May 01, 2019
 
 param
 (
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
+    [string]$Environment = "AzureCloud",
+
     # Provide SubscriptionID to bypass subscription listing
     [Parameter(Mandatory = $False)]
     [guid]$SubscriptionId,
@@ -132,7 +136,7 @@ try
 }
 catch
 {
-    $null = Login-AzAccount
+    $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     $token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id} 
@@ -200,7 +204,8 @@ elseif ($ResourceGroupName)
     $RESOURCEID = "/subscriptions/$Subscription/$ResourceGroup"
 
 }
-$PostURI = "https://management.azure.com/$RESOURCEID/providers/Microsoft.PolicyInsights/policyStates/latest/triggerEvaluation?api-version=2018-07-01-preview"
+$azEnvironment = Get-AzEnvironment -Name $Environment
+$PostURI = "$($azEnvironment.ResourceManagerUrl)$RESOURCEID/providers/Microsoft.PolicyInsights/policyStates/latest/triggerEvaluation?api-version=2018-07-01-preview"
 
 try
 {
