@@ -450,7 +450,7 @@ function Get-ResourceType (
                 catch
                 {
                     # Uncomment below to see actual error.  Certain resources are not ResourceTypes that can support Logs and Metrics so the host error is being muted
-                    # write-host $Error[0] -ForegroundColor Red
+                    #write-host $Error[0] -ForegroundColor Red
                     $Invalid = $True
                     $Logs = $False
                     $Metrics = $False
