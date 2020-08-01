@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.1
+.VERSION 2.2
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,8 +26,15 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-July 16, 2020 2.1
-    Storage Added as a sink to policy and policy initiative ARM template exports
+July 31, 2020 2.2
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
 #>
 
 <#  
@@ -40,6 +47,10 @@ July 16, 2020 2.1
   This script takes a SubscriptionID, ResourceType, ResourceGroup as parameters, analyzes the subscription or
   specific ResourceGroup defined for the resources specified in $Resources, and builds a custom policy for 
   diagnostic metrics/logs for Event Hubs, Storage and Log Analytics as sink points for selected resource types.
+
+.PARAMETER Environment
+    The cloud environment that you are needing to analyze. Default is AzureCloud
+    Available clouds: AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment  
 
 .PARAMETER SubscriptionId
     The subscriptionID of the Azure Subscription that contains the resources you want to analyze
@@ -171,9 +182,23 @@ July 16, 2020 2.1
 .\Create-AzDiagPolicy.ps1 -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but exporting to a storage account as a sink point.
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
+  Same as previous example, but leveraging Azure Government Cloud.
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: July 16, 2020 2.1
+   LASTEDIT: July 31, 2020 2.2
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
+    
+   July 16, 2020 2.1
     Storage Added as a sink to policy and policy initiative ARM template exports
 
    June 07, 2020 2.0
@@ -253,7 +278,7 @@ July 16, 2020 2.1
 
 param
 (
-    # Environment - will b
+    # Environment defines what cloud you are analyzing (defaults to AzureCloud)
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]
@@ -432,13 +457,23 @@ function Get-ResourceType (
         $logs = $false #initialize logs flag to $false
         
         #Establish URI to gather resources
+        # Determine cloud and ensure proper REST Endpoint defined
         $azEnvironment = Get-AzEnvironment -Name $Environment
-
-       
         $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
         #Write-Host "URI: $($URI)"
-
-        if ($analysis.resourceType -notcontains $resource.ResourceType)
+        
+        $Exists = $false
+        if($Analysis)
+        {
+            foreach($A in $Analysis)
+            {
+                if($($Resource.resourceType -eq $A.resourcetype) -and $($Resource.Kind -eq $A.Kind))
+                {
+                    $exists = $True                    
+                }
+            }
+        }
+        if (!($Exists))
         {
             try
             {
@@ -1636,20 +1671,30 @@ function Parse-ResourceType
     [Parameter(Mandatory=$True)]
     [string]$resourceType,
     [Parameter(Mandatory=$True)]
-    [string]$sinkDest
+    [string]$sinkDest,
+    [Parameter(Mandatory=$False)]
+    [string]$kind
+    
 
 )
 {
+    $KindDirVar = $null
+    if($Kind)
+    {
+        $pattern = '[^a-zA-Z0-9.-]'
+        $KindDirVar = $Kind -replace $pattern, '-'
+        $KindDirVar = "-" + $KindDirVar
+    }
     $ReturnVar=@()
     if($ResourceType.Split("/").count -eq 3)
     {
         $nameField = "fullName"
-        $DirectoryNameBase = "Apply-Diag-Settings-$sinkDest-" + $($resourceType.Split("/", 3))[0] + "-" + $($resourceType.Split("/", 3))[1] + "-" + $($resourceType.Split("/", 3))[2]
+        $DirectoryNameBase = "Apply-Diag-Settings-$sinkDest-" + $($resourceType.Split("/", 3))[0] + "-" + $($resourceType.Split("/", 3))[1] + "-" + $($resourceType.Split("/", 3))[2] + $KindDirVar
     }
     if($ResourceType.Split("/").count -eq 2)
     {
         $nameField = "name"
-        $DirectoryNameBase = "Apply-Diag-Settings-$sinkDest-" + $($resourceType.Split("/", 2))[0] + "-" + $($resourceType.Split("/", 2))[1]
+        $DirectoryNameBase = "Apply-Diag-Settings-$sinkDest-" + $($resourceType.Split("/", 2))[0] + "-" + $($resourceType.Split("/", 2))[1] + $KindDirVar
     }
     $ReturnVar += $DirectoryNameBase
     $ReturnVar += $nameField
@@ -1687,7 +1732,7 @@ function New-PolicyInitiative
     [Parameter(Mandatory=$True)]
     [string]$PolicyBag,
     [Parameter(Mandatory=$True)]
-    [string]$PolicySIDs,
+    [string]$PolicyRSIDs,
     [Parameter(Mandatory=$True)]
     [string]$PolicyDefParams,
     [Parameter(Mandatory=$True)]
@@ -1941,9 +1986,10 @@ if($ManagementGroup)
     $SubScriptionsToProcess =@()
     if($ManagementGroupID)
     {
+        # Determine cloud and ensure proper REST Endpoint defined
         $azEnvironment = Get-AzEnvironment -Name $Environment
         $GetBody = BuildBody -method "GET"
-        $MGSubsDetailsURI = "https://$($azEnvironment.ResourceManagerUrl)/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
+        $MGSubsDetailsURI = "$($azEnvironment.ResourceManagerUrl)/providers/microsoft.management/managementGroups/$($ManagementGroupID)/descendants?api-version=2018-03-01-preview"
         $GetResults = (Invoke-RestMethod -uri $MGSubsDetailsURI @GetBody).value
         foreach($Result in $GetResults| Where-Object {$_.type -eq "/subscriptions"})
         {
@@ -2122,7 +2168,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($ExportLA)
             {
                 $sinkDest = "LA"
-                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest
+                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest -kind $Type.Kind
                 # If we have a kind for the resourceType let's add that to the policy evaluation rules (and add it to the displayname)
                 if($Type.Kind)
                 {
@@ -2196,7 +2242,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($ExportEH)
             {
                 $sinkDest = "EH"
-                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest
+                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest -kind $Type.Kind
                 # If we have a kind for the resourceType let's add that to the policy evaluation rules (and add it to the displayname)
                 if($Type.Kind)
                 {
@@ -2270,7 +2316,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($ExportStorage)
             {
                 $sinkDest = "Storage"
-                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest
+                $RPVar = Parse-ResourceType -resourceType $Type.ResourceType -sinkDest $sinkDest -kind $Type.Kind
                 # If we have a kind for the resourceType let's add that to the policy evaluation rules (and add it to the displayname)
                 if($Type.Kind)
                 {
@@ -2372,7 +2418,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
         if($ExportLA)
         {
-            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "LA"
+            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "LA" -kind $Type.Kind
             $PolicyJSON = Update-LogAnalyticsJSON -resourceType $ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
             write-host "Exporting Log Analytics Custom Azure Policy for resourceType: $($ResourceType)" -ForegroundColor Yellow
             # Make sure export directory exists!
@@ -2400,7 +2446,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
         if($ExportEH)
         {
-            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "EH"
+            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "EH" -kind $Type.Kind
             $PolicyJSON = Update-EventHubJSON -resourceType $ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
             write-host "Exporting Event Hub Custom Azure Policy for resourceType: $($ResourceType)" -ForegroundColor Yellow
             
@@ -2430,7 +2476,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
         if($ExportStorage)
         {
-            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "Storage"
+            $RPVar = Parse-ResourceType -resourceType $ResourceType -sinkDest "Storage" -kind $Type.Kind
             $PolicyJSON = Update-StorageJSON -resourceType $ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
             write-host "Exporting Storage Custom Azure Policy for resourceType: $($ResourceType)" -ForegroundColor Yellow
             
@@ -2512,7 +2558,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
 
         # Building the Policy Initiative (Note only one sink point per policy initiative [Log Analytics or EventHub])
-        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicySIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName
+        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicyRSIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName
         
         # Ensure JSON is formatted on export
         $PolicyInititiative = Format-JSON -JSON $PolicyInititiative
