@@ -35,6 +35,9 @@ July 31, 2020 2.2
     
     Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
     to debug, test, validate, and push on getting Azure Government supported with these scripts!
+
+    Fixed Bug with "Kind" and not exporting all policies for ResourceProviders that leverage
+    Kind with same RP (ex: Azure SQL DB, Azure SQL DW)
 #>
 
 <#  
@@ -197,7 +200,12 @@ July 31, 2020 2.2
     
     Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
     to debug, test, validate, and push on getting Azure Government supported with these scripts!
-    
+
+    Fixed Bug with "Kind" and not exporting all policies for ResourceProviders that leverage
+    Kind with same RP (ex: Azure SQL DB, Azure SQL DW)
+
+    Special Thanks for Mo Barry for helping me isolate this bug in the script
+
    July 16, 2020 2.1
     Storage Added as a sink to policy and policy initiative ARM template exports
 
