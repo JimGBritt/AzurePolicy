@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-July 31, 2020 2.2
+August 03, 2020 2.2
     Environment Added to script to allow for other clouds beyond Azure Commercial
     AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
     
@@ -38,6 +38,9 @@ July 31, 2020 2.2
 
     Fixed Bug with "Kind" and not exporting all policies for ResourceProviders that leverage
     Kind with same RP (ex: Azure SQL DB, Azure SQL DW)
+
+    Special Thanks to Mo Barry for helping me isolate this bug in the script
+
 #>
 
 <#  
@@ -191,7 +194,7 @@ July 31, 2020 2.2
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: July 31, 2020 2.2
+   LASTEDIT: August 03, 2020 2.2
     Environment Added to script to allow for other clouds beyond Azure Commercial
     AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
     
@@ -204,7 +207,7 @@ July 31, 2020 2.2
     Fixed Bug with "Kind" and not exporting all policies for ResourceProviders that leverage
     Kind with same RP (ex: Azure SQL DB, Azure SQL DW)
 
-    Special Thanks for Mo Barry for helping me isolate this bug in the script
+    Special Thanks to Mo Barry for helping me isolate this bug in the script
 
    July 16, 2020 2.1
     Storage Added as a sink to policy and policy initiative ARM template exports
