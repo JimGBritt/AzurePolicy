@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 1.1
 
 .GUID 4071a36f-de54-4efb-a706-ea2ca98ced49
 
@@ -26,10 +26,15 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-June 06, 2020 1.0
-Initial
- * This script leverages an ARM Template used to deploy an Azure Policy Initiative and removes the deployed
-   resources from your Azure Subscription
+August 4, 2020 1.2 - Updates
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
  #>
 
 <#  
@@ -49,11 +54,24 @@ Remove an Azure Policy Initiative from an Azure Subscription using an ARM Templa
 .EXAMPLE
   .\Remove-PolicyInitDeployment.ps1 -subscriptionId 'fd2323a9-2324-4d2a-90f6-7e6c2fe03512' -ARMTemplate .\exporttest\ARM-Template-azurepolicyinit.json
   Removed a Policy Initiative and Dependent Custom Policies referenced in a supplied ARM template within a specified subscriptionID as scope
-  
+
+.EXAMPLE
+  .\Remove-PolicyInitDeployment.ps1 -Environment AzureUSGovernment -subscriptionId 'fd2323a9-2324-4d2a-90f6-7e6c2fe03512' -ARMTemplate .\exporttest\ARM-Template-azurepolicyinit.json
+  Does everything that the previous example does, only targets Azure Government Cloud
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: June 06, 2020 1.0
+   LASTEDIT: August 4, 2020 1.2 - Updates
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
 
+   June 06, 2020 1.0
    Initial
     * This script leverages an ARM Template used to deploy an Azure Policy Initiative and removes the deployed
     resources from your Azure Subscription
@@ -65,11 +83,16 @@ Remove an Azure Policy Initiative from an Azure Subscription using an ARM Templa
 
 [CmdletBinding()]
 param (
+    # Determines which cloud to target - AzureCloud is default
     [Parameter(Mandatory=$false)]
     [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
     [string]$Environment = "AzureCloud",
+
+    # An ARM Template file that was initially leveraged to deploy a policy initiative (and custom policies)
     [Parameter(Mandatory=$True)]
     [string]$ARMTemplate,
+
+    # SubscriptionID to remove Policy Initiative (and custom policies) as long as not currently assigned
     [Parameter(Mandatory=$True)]
     [guid]$subscriptionId
 )

@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.1
+.VERSION 1.2
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -15,7 +15,7 @@
 .LICENSEURI 
 
 .PROJECTURI 
-https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
+https://aka.ms/AzPolicyScripts
 
 .ICONURI 
 
@@ -26,8 +26,17 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-July 2, 2020 1.1 - Updates
-    Small visual bug on variable prompt when providing PolicyAssignmentId parameter value
+August 4, 2020 1.2 - Updates
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
+
+    Bug fix for enumeration and execution of remediation of Policy Initiatives when Management Group is used
 #>
 
 <#  
@@ -72,8 +81,28 @@ July 2, 2020 1.1 - Updates
 
   Will remedate a policy initiaive given the ManagementGroupId as scope, the specific PolicytAssignmentId and use force to execute silently.
 
+.EXAMPLE
+  .\Trigger-PolicyInitiativeRemediation.ps1 -Environment AzureUSGovernment -ManagementGroup -ManagementGroupId "MyManagementGroup" `
+  -PolicyAssignmentId '/providers/Microsoft.Management/managementGroups/MyManagementGroup/providers/Microsoft.Authorization/policyAssignments/pa1' `
+  -force
+
+  Will do everything the previous example accomplished but targeting AzureUSGovernment Cloud instead of AzureCloud
+
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   August 4, 2020 1.2 - Updates
+    Environment Added to script to allow for other clouds beyond Azure Commercial
+    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
+    
+    Special Thanks to Michael Pullen for your direct addition to the script to support
+    additional Azure Cloud reach for this script! :) 
+    
+    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
+    to debug, test, validate, and push on getting Azure Government supported with these scripts!
+
+    Bug fix for enumeration and execution of remediation of Policy Initiatives when Management Group is used
+    
    July 2, 2020 1.1 - Updates
     Small visual bug on variable prompt when providing PolicyAssignmentId parameter value
 
@@ -90,6 +119,7 @@ July 2, 2020 1.1 - Updates
 
 param
 (
+    # Determine which Azure Cloud to leverage for script - default is AzureCloud
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Subscription')]
@@ -97,6 +127,7 @@ param
     [Parameter(Mandatory=$false)]
     [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
     [string]$Environment = "AzureCloud",
+    
     # Specify a policy initiative assignment ID
     # Example for Management Group Scope: '/providers/Microsoft.Management/managementGroups/MyManagementGroup/providers/Microsoft.Authorization/policyAssignments/pa1'
     # Example for Subscription Scope: '/subscriptions/fd2323a9-2324-4d2a-90f6-7e6c2fe03512/providers/Microsoft.Authorization/policyAssignments/17ddefc76ecd4fe5b26455bb'
@@ -367,16 +398,9 @@ If(!($PolicyAssignmentID))
 }
 if($PolicyAssignmentID)
 {
-    try{
-        if($ManagementGroupID)
-        {
-            $PolicyAssignment = Get-AzPolicyAssignment -scope $Scope -Id $PolicyAssignmentID
-        }
-        if($SubscriptionId)
-        {
-            $PolicyAssignment = Get-AzPolicyAssignment -Id $PolicyAssignmentID
-        }
-
+    try
+    {
+        $PolicyAssignment = Get-AzPolicyAssignment -Id $PolicyAssignmentID
         $PolicyDefinition = $(Get-AzPolicySetDefinition -id $PolicyAssignment.Properties.policyDefinitionId)
         $PolicyDefinitionRefIDs = $($PolicyDefinition.Properties.policyDefinitions).policyDefinitionReferenceId
         Write-Host "Selecting Azure Policy Initiative: $($PolicyAssignMent.Properties.displayName)..." -ForegroundColor Cyan
