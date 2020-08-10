@@ -1883,7 +1883,7 @@ try
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     $currentSub = $(Get-AzContext).Subscription.Name
-    if(!($ADO)){$token = $currentContext.TokenCache.ReadItems()}
+    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
     else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
     if($Token.ExpiresOn -lt $(get-date))
     {
@@ -1897,7 +1897,7 @@ catch
     $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    if(!($ADO)){$token = $currentContext.TokenCache.ReadItems()}
+    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
     else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
 }
 
@@ -2620,9 +2620,11 @@ try
 {
     While(($ContextSet -ne $currentSub) -or ($Count -ge 5))
     {
-        write-host "Setting Context back to initial subscription $CurrentSub"
+        Get-AzContext
+        write-host "`nSetting Context back to initial subscription $CurrentSub"
         $SetContext = Set-AzContext -Subscription $CurrentSub
         $ContextSet = $SetContext.Subscription.Name
+        Get-AzContext
         $Count++
     }
 }
