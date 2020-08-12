@@ -2620,11 +2620,9 @@ try
 {
     While(($ContextSet -ne $currentSub) -or ($Count -ge 5))
     {
-        Get-AzContext
         write-host "`nSetting Context back to initial subscription $CurrentSub"
         $SetContext = Set-AzContext -Subscription $CurrentSub
         $ContextSet = $SetContext.Subscription.Name
-        Get-AzContext
         $Count++
     }
 }

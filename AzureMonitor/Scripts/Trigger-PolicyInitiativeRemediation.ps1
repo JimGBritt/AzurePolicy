@@ -148,7 +148,6 @@ param
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Initiative')]
     [Parameter(Mandatory=$false)]
-    [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
     [switch]$ADO = $False,
 
     # Specify a policy initiative assignment ID
