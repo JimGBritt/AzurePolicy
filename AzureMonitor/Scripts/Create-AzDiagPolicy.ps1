@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.2
+.VERSION 2.3
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,20 +26,13 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 03, 2020 2.2
-    Environment Added to script to allow for other clouds beyond Azure Commercial
-    AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
-    
-    Special Thanks to Michael Pullen for your direct addition to the script to support
-    additional Azure Cloud reach for this script! :) 
-    
-    Thank you Matt Taylor, Paul Harrison, and Abel Cruz for your collaboration in this area
-    to debug, test, validate, and push on getting Azure Government supported with these scripts!
+August 13, 2020 2.3
+    Added parameter -ADO
+    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
-    Fixed Bug with "Kind" and not exporting all policies for ResourceProviders that leverage
-    Kind with same RP (ex: Azure SQL DB, Azure SQL DW)
-
-    Special Thanks to Mo Barry for helping me isolate this bug in the script
+    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
+    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
+    drift detection and remediation through automation!
 
 #>
 
@@ -120,6 +113,9 @@ August 03, 2020 2.2
     leveraged with an ADO pipeline and test automation to validate policy drift according to a baselined exported Policy Initiatve that
     has been promoted into production versus what your environment states it should be configured as (at current state of running the script)
 
+.PARAMETER ADO
+    This parameter allows you to run this script in Azure DevOps pipeline utilizing an SPN
+
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
   Take in parameters and execute silently without prompting against the scope of a resourceType, Resource Group, with a specified subscriptionID as scope
@@ -192,9 +188,21 @@ August 03, 2020 2.2
 .\Create-AzDiagPolicy.ps1 -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but leveraging Azure Government Cloud.
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ADO -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
+  Same as previous example, but enabling the script to run in Azure DevOps
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 03, 2020 2.2
+   LASTEDIT: August 13, 2020 2.3
+    Added parameter -ADO
+    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
+
+    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
+    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
+    drift detection and remediation through automation!
+
+   August 03, 2020 2.2
     Environment Added to script to allow for other clouds beyond Azure Commercial
     AzureChinaCloud, AzureCloud,AzureGermanCloud,AzureUSGovernment
     
@@ -296,7 +304,15 @@ param
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Export')]
     [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
-    [string]$Environment = "AzureCloud",
+    [string]$Environment = "AzureCloud",    # Environment defines what cloud you are analyzing (defaults to AzureCloud)
+
+    # Use this switch to enable the script to run via SPN in an Azure DevOps Pipeline
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Export')]
+    [switch]$ADO = $False,
 
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
@@ -1865,13 +1881,15 @@ If(!($ExportDir))
 $SubScriptionsToProcess = $null
 
 # Login to Azure - if already logged in, use existing credentials.
+If($ADO){write-host "Leveraging ADO switch for SPN authentication in Azure DevOps"}
 Write-Host "Authenticating to Azure..." -ForegroundColor Cyan
 try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     $currentSub = $(Get-AzContext).Subscription.Name
-    $token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id} 
+    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
+    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
     if($Token.ExpiresOn -lt $(get-date))
     {
         "Logging you out due to cached token is expired for REST AUTH.  Re-run script"
@@ -1884,8 +1902,8 @@ catch
     $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    $token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id} 
-
+    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
+    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
 }
 
 # Authenticate to Azure if not already authenticated 
@@ -2602,10 +2620,16 @@ IF($ValidateJSON)
     }
 }
 $Stop = (Get-Date)
-write-host "Setting Context back to initial subscription $CurrentSub"
+$Count = 0
 try
 {
-    $Null = Set-AzContext -Subscription $CurrentSub
+    While(($ContextSet -ne $currentSub) -or ($Count -ge 5))
+    {
+        write-host "`nSetting Context back to initial subscription $CurrentSub"
+        $SetContext = Set-AzContext -Subscription $CurrentSub
+        $ContextSet = $SetContext.Subscription.Name
+        $Count++
+    }
 }
 catch
 {
