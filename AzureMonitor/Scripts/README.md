@@ -8,14 +8,12 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-<span style="color:dodgerBlue">**UPDATES!**</span> - August 4, 2020
+**UPDATES!**</span> - August 13, 2020
 
-- **Broader Azure Cloud Support**: All scripts now support an **-Environment** switch 
-
-  Example: "AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment"
-
-- **Create-AzDiagPolicy.PS1**: bug fix that was preventing creation of various Azure SQL DB Types
-- **Trigger-PolicyInitiativeRemediation.PS1**: Bug fix for Management Group Logic preventing the ability to trigger a policy initiative if using a Management Group
+- **Azure DevOps Support**: All scripts now support the ability to run in Azure DevOps with an "**-ADO**" switch
+  - Create-AzDiagPolicy.PS1
+  - Trigger-PolicyEvaluation.PS1
+  - Trigger-PolicyInitiativeRemediation.PS1
 
 ## Flow Diagram
 
