@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 10, 2020 1.1
+August 13, 2020 1.1
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -77,7 +77,7 @@ August 10, 2020 1.1
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CAT 
-   LASTEDIT: August 10, 2020 1.1
+   LASTEDIT: August 13, 2020 1.1
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 

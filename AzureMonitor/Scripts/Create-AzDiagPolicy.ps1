@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 10, 2020 2.3
+August 13, 2020 2.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -188,9 +188,13 @@ August 10, 2020 2.3
 .\Create-AzDiagPolicy.ps1 -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but leveraging Azure Government Cloud.
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ADO -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
+  Same as previous example, but enabling the script to run in Azure DevOps
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 10, 2020 2.3
+   LASTEDIT: August 13, 2020 2.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -302,6 +306,7 @@ param
     [ValidateSet("AzureChinaCloud","AzureCloud","AzureGermanCloud","AzureUSGovernment")]
     [string]$Environment = "AzureCloud",    # Environment defines what cloud you are analyzing (defaults to AzureCloud)
 
+    # Use this switch to enable the script to run via SPN in an Azure DevOps Pipeline
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
     [Parameter(ParameterSetName='Subscription')]
     [Parameter(ParameterSetName='Tenant')]

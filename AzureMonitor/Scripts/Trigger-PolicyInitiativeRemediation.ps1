@@ -26,7 +26,7 @@ https://aka.ms/AzPolicyScripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 10, 2020 1.3
+August 13, 2020 1.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -97,7 +97,7 @@ August 10, 2020 1.3
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   August 10, 2020 1.3
+   August 13, 2020 1.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
