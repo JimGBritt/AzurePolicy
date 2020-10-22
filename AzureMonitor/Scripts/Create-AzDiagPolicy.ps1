@@ -1,4 +1,4 @@
-﻿<#PSScriptInfo
+<#PSScriptInfo
 
 .VERSION 2.3
 
@@ -26,14 +26,9 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 13, 2020 2.3
-    Added parameter -ADO
-    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
-
-    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
-    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
-    drift detection and remediation through automation!
-
+October 22, 2020 2.3.1
+    Added parameter -ManagementGroupDeployment
+    This parameter provides the option to deploy the initiative to management-group scope.
 #>
 
 <#  
@@ -102,6 +97,11 @@ August 13, 2020 2.3
 
 .PARAMETER ExportInitiative
     This ExportInitiative Switch determines if you are exporting a Policy Initiative (ARM Template) or just raw policy files
+
+.PARAMETER ManagementGroupDeployment
+    This ManagementGroupDeployment provides the option to deploy the initiative to management-group scope. If this parameter is not provided the exported initiative can only
+    be deployed at subscription level. To Deploy the initiative to management groups use the following command:
+    New-AzManagementGroupDeployment -ManagementGroupId "{YourMgId}" -Location "West Europe" -TemplateFile .\ARM-Template-azurepolicyinit.json -TemplateParameterObject @{"targetMG"="{YourMgId}"}
 
 .PARAMETER InitiativeDisplayName
     This parameter allows you to set the Policy Initiative Name so you can have two Initiatives with slighly different 
@@ -386,6 +386,15 @@ param
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Initiative')]
     [switch]$ExportInitiative=$False,
+
+    # Switch to determine if you are going to export an ARM Initiative to deploy an MG Scope or all policy files.  Default is all policy files unless this switch is used
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Export')]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Initiative')]
+    [switch]$ManagementGroupDeployment=$False,
 
     # Specify a policy initiative display name (default will be used otherwise)
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
@@ -1777,6 +1786,47 @@ function New-PolicyInitiative
     $PolicyDefParams = $PolicyDefParams.substring(0,$PolicyDefParams.length -3)
     
     # Build Template reference for Policy Initiative
+
+    if($ManagementGroupDeployment) {
+    $InitiativeTemplate = @'
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "targetMG": {
+            "type": "string",
+            "metadata": {
+                "description": "Target Management Group"
+            }
+        }
+    },
+    "variables": {
+        "mgScope": "[tenantResourceId('Microsoft.Management/managementGroups', parameters('targetMG'))]"
+    },
+    "resources": [
+        <AzurePolicyPropertyBag>
+        {
+            "type": "Microsoft.Authorization/policySetDefinitions",
+            "apiVersion": "2019-09-01",
+            "name": "<AZURE DIAG INITIATIVE NAME>",
+            "dependsOn": [
+<Policy INIT RESIDs>
+            ],
+            "properties": {
+                "displayName": "<AZURE DIAG INITIATIVE DISPLAY NAME>",
+                "description": "This initiative configures application Azure resources to forward diagnostic logs and metrics to an Azure Diagnostics sink point.",
+                "metadata": {
+                    "category": "Monitoring"
+                },
+                "parameters": <ParametersGoHere>,
+                "policyDefinitions": [
+                    <PolicyDefParams>
+                ]
+            }
+        }
+    ]
+}
+'@ }else {
     $InitiativeTemplate = @'
 {
     "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
@@ -1806,6 +1856,7 @@ function New-PolicyInitiative
     ]
 }
 '@
+    }
     # Update Policy Initiative reference strings according to what we've discovered
     $InitiativeTemplate = $InitiativeTemplate.Replace("<AZURE DIAG INITIATIVE NAME>", $InitiativeName)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<AZURE DIAG INITIATIVE DISPLAY NAME>", $InitiativeDisplayName)
@@ -1822,7 +1873,7 @@ function New-PolicyInitiative
 # Also credit to https://github.com/DeadPoolHeartsRR for their input on another script to use logic to use regex to clean up non printable chars
 function Format-JSON ($JSON)
 {
-    $PrettifiedJSON = ($JSON) | convertfrom-json | convertto-json -depth 50 | ForEach-Object { [System.Text.RegularExpressions.Regex]::Unescape($_) }
+    $PrettifiedJSON = $JSON | ConvertFrom-Json | ConvertTo-Json -depth 50 | ForEach-Object { [System.Text.RegularExpressions.Regex]::Unescape($_) }
     $PrettifiedJSON
 }
 
@@ -2221,7 +2272,11 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
 
 '@
                     
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    if($ManagementGroupDeployment) {
+                        $PolicyRSID = """[extensionResourceId(variables('mgScope'),'Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    } else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-LogAnalyticsJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
@@ -2294,7 +2349,11 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    if($ManagementGroupDeployment) {
+                        $PolicyRSID = """[extensionResourceId(variables('mgScope'),'Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    } else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-EventHubJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
@@ -2368,7 +2427,11 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    if($ManagementGroupDeployment) {
+                        $PolicyRSID = """[extensionResourceId(variables('mgScope'),'Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    } else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-StorageJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
@@ -2625,9 +2688,11 @@ try
 {
     While(($ContextSet -ne $currentSub) -or ($Count -ge 5))
     {
+        Get-AzContext
         write-host "`nSetting Context back to initial subscription $CurrentSub"
         $SetContext = Set-AzContext -Subscription $CurrentSub
         $ContextSet = $SetContext.Subscription.Name
+        Get-AzContext
         $Count++
     }
 }
