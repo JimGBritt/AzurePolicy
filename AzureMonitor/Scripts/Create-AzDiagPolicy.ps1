@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.3
+.VERSION 2.4
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,14 +26,14 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 13, 2020 2.3
-    Added parameter -ADO
-    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
+October 22, 2020 2.4
+    Added parameter -TargetMGID for ARM Export
+    This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
+    group target scope.
 
-    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
-    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
-    drift detection and remediation through automation!
-
+    Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it
+    Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
 #>
 
 <#  
@@ -194,7 +194,16 @@ August 13, 2020 2.3
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 13, 2020 2.3
+   LASTEDIT: October 22, 2020 2.4
+    Added parameter -TargetMGID for ARM Export
+    This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
+    group target scope.
+
+    Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it
+    Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
+    
+   August 13, 2020 2.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -313,6 +322,14 @@ param
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Export')]
     [switch]$ADO = $False,
+
+    # Default of $False assumes subscription as target - if $True will modify intiative properties to support MG target
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Export')]
+    [switch]$TargetMGID=$False,
 
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
@@ -1776,12 +1793,28 @@ function New-PolicyInitiative
     $PolicyRSIDs = $PolicyRSIDs.substring(0,$PolicyRSIDs.length -3)
     $PolicyDefParams = $PolicyDefParams.substring(0,$PolicyDefParams.length -3)
     
+    # Adding support for Management Group deployment scope.  If parameter switch is used for -TargetMGID, we'll put the right JSON in to support
+    if($TargetMGID)
+    {
+        $MGJSONParam = @'
+{
+    "TargetMGID": {
+        "type": "string",
+        "defaultValue": ""
+    }
+}
+'@
+    }
+    else
+    {
+        $MGJSONParam = '{}'
+    }
     # Build Template reference for Policy Initiative
     $InitiativeTemplate = @'
 {
     "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {},
+    "parameters": <ManagementGroupID>,
     "resources": [
         <AzurePolicyPropertyBag>
         {
@@ -1813,6 +1846,7 @@ function New-PolicyInitiative
     $InitiativeTemplate = $InitiativeTemplate.Replace("<Policy INIT RESIDs>", $PolicyRSIDs)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<ParametersGoHere>", $Parameters)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<PolicyDefParams>", $PolicyDefParams)
+    $InitiativeTemplate = $InitiativeTemplate.Replace("<ManagementGroupID>", $MGJSONParam)
 
     $InitiativeTemplate
 }
@@ -2220,8 +2254,17 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
+                    # If we are exporting for Management Group - update RSID to support management group navigation
+                    if($TargetMGID)
+                    {
+                        $PolicyRSID = """[concat('/providers/Microsoft.Management/managementGroups/', parameters('TargetMGID'), '/providers/Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+                    # If not exporting for MG, leverage standard ResourceID
+                    else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+                        
                     
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-LogAnalyticsJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
