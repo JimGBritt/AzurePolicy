@@ -27,7 +27,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 
 .RELEASENOTES
 October 22, 2020 2.4
-    Added parameter -TargetMGID for ARM Export
+    Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
 
@@ -46,6 +46,12 @@ October 22, 2020 2.4
   This script takes a SubscriptionID, ResourceType, ResourceGroup as parameters, analyzes the subscription or
   specific ResourceGroup defined for the resources specified in $Resources, and builds a custom policy for 
   diagnostic metrics/logs for Event Hubs, Storage and Log Analytics as sink points for selected resource types.
+
+.PARAMETER ManagementGroupDeployment
+    Leverage this switch to export the ARM template for your policy initiative to
+    support Management Group as a scope target.  This will place all resources (Custom Policies and Policy Initiative)
+    in the same MG upon deployment via "New-AzManagementGroupDeployment"
+    Ex: New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId CatDev -Location eastus -TemplateFile C:\users\jbritt\Documents\Github\Demo\SPARK-DEMO\test\MgTemplateExportMG.json -ManagementGroupDeployment
 
 .PARAMETER Environment
     The cloud environment that you are needing to analyze. Default is AzureCloud
@@ -192,10 +198,14 @@ October 22, 2020 2.4
 .\Create-AzDiagPolicy.ps1 -ADO -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but enabling the script to run in Azure DevOps
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportDir .\LogPolicies -ExportAll -ExportLA -ExportInitiative -TemplateFileName MgTemplateExportMG -ManagementGroupDeployment -AllRegions
+  Exports an ARM Template Policy Initiative supporting a Management Group supporting all Logs for Log Analytics and all regions supported
+
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
    LASTEDIT: October 22, 2020 2.4
-    Added parameter -TargetMGID for ARM Export
+    Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
 
@@ -329,7 +339,7 @@ param
     [Parameter(ParameterSetName='Tenant')]
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Export')]
-    [switch]$TargetMGID=$False,
+    [switch]$ManagementGroupDeployment=$False,
 
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
@@ -1793,8 +1803,8 @@ function New-PolicyInitiative
     $PolicyRSIDs = $PolicyRSIDs.substring(0,$PolicyRSIDs.length -3)
     $PolicyDefParams = $PolicyDefParams.substring(0,$PolicyDefParams.length -3)
     
-    # Adding support for Management Group deployment scope.  If parameter switch is used for -TargetMGID, we'll put the right JSON in to support
-    if($TargetMGID)
+    # Adding support for Management Group deployment scope.  If parameter switch is used for -ManagementGroupDeployment, we'll put the right JSON in to support
+    if($ManagementGroupDeployment)
     {
         $MGJSONParam = @'
 {
@@ -2255,7 +2265,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
 
 '@
                     # If we are exporting for Management Group - update RSID to support management group navigation
-                    if($TargetMGID)
+                    if($ManagementGroupDeployment)
                     {
                         $PolicyRSID = """[concat('/providers/Microsoft.Management/managementGroups/', parameters('TargetMGID'), '/providers/Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
                     }
