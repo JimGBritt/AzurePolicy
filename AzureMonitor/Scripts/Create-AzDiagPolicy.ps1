@@ -1827,7 +1827,7 @@ function New-PolicyInitiative
     # Build Template reference for Policy Initiative
     $InitiativeTemplate = @'
 {
-    "$schema": <SUB OR MG SCHEMA>,
+    "$schema": "<SUB OR MG SCHEMA>",
     "contentVersion": "1.0.0.0",
     "parameters": <ManagementGroupID>,
     "resources": [
