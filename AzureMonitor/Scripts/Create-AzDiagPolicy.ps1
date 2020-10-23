@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 22, 2020 2.4
+October 23, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
@@ -201,10 +201,13 @@ October 22, 2020 2.4
 .EXAMPLE
 .\Create-AzDiagPolicy.ps1 -ExportDir .\LogPolicies -ExportAll -ExportLA -ExportInitiative -TemplateFileName MgTemplateExportMG -ManagementGroupDeployment -AllRegions
   Exports an ARM Template Policy Initiative supporting a Management Group supporting all Logs for Log Analytics and all regions supported
+  NOTE: Use the following example to deploy this template to a target management group
+
+  New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId MyMGID -Location eastus -TemplateFile .\MgTemplateExportMG.json -TargetMGID MyMGID
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 22, 2020 2.4
+   LASTEDIT: October 23, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
@@ -1814,15 +1817,17 @@ function New-PolicyInitiative
     }
 }
 '@
+        $schema = "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#"
     }
     else
     {
         $MGJSONParam = '{}'
+        $schema = "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
     }
     # Build Template reference for Policy Initiative
     $InitiativeTemplate = @'
 {
-    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "$schema": <SUB OR MG SCHEMA>,
     "contentVersion": "1.0.0.0",
     "parameters": <ManagementGroupID>,
     "resources": [
@@ -1857,6 +1862,7 @@ function New-PolicyInitiative
     $InitiativeTemplate = $InitiativeTemplate.Replace("<ParametersGoHere>", $Parameters)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<PolicyDefParams>", $PolicyDefParams)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<ManagementGroupID>", $MGJSONParam)
+    $InitiativeTemplate = $InitiativeTemplate.Replace("<SUB OR MG SCHEMA>", $schema)
 
     $InitiativeTemplate
 }

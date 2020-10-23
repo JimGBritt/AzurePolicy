@@ -8,12 +8,9 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - August 13, 2020
+**UPDATES!**</span> - October 22, 2020
 
-- **Azure DevOps Support**: All scripts now support the ability to run in Azure DevOps with an "**-ADO**" switch
-  - Create-AzDiagPolicy.PS1
-  - Trigger-PolicyEvaluation.PS1
-  - Trigger-PolicyInitiativeRemediation.PS1
+- **Management Group Target Scope Support**: The **Create-AzDiagPolicy.PS1** script now supports exporting a policy initiative ARM template allowing for Management Group as a scope using the  "***-ManagementGroupDeployment***" switch
 
 ## Flow Diagram
 
@@ -122,7 +119,7 @@ Finally - you can select the policy to review the actual contents (JSON) within 
 
 From here you can assign this individual policy to a scope (Subscription/Management Group / Resource Group) to enforce it within your environment.
 
-### Event Hub and Log Analytics **Policy Initiatve** ARM Templates 
+### Event Hub, Storage, and Log Analytics **Policy Initiatve** ARM Templates 
 
 This script also provides the option to export a set of custom policies wrapped in a Policy Iniative in an exported ARM template that can be imported into Azure via an ARM deployment to be able to be assigned to a scope.  The benefits of this option are:
 
@@ -132,7 +129,7 @@ This script also provides the option to export a set of custom policies wrapped 
 
 1. A Policy Initiative supported by an ARM template deployment can be deployed seamlessly with a single command and mangaement of this initiative is much more straight forward that managing 10's of policies utilizing the same parameters.
 
-#### Creating a Policy Initiative ARM Template for Log Analytics or Event Hub
+#### Creating a Policy Initiative ARM Template for Log Analytics, Azure Storage, or Event Hub
 
   The below script and parameter combination provides the following:
 
