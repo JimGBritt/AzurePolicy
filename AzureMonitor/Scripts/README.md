@@ -23,7 +23,7 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 1. **Trigger-PolicyEvaluation.PS1**: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to reflect compliance against existing resources
 1. **Trigger-PolicyInitiativeRemediation**: Leverage this script to completely remediation a policy initiative at a scope of Subscription or Management Group (creating of individual remediation jobs for each policy in a targeted assigned initiative in minutes!)
 
-## OVERVIEW OF CREATE-AZDIAGPOLICY.PS1
+## Overview of Create-AzDiagPolicy.ps1
 
 ### About the Script (Create-AzDiagPolicy.PS1)
 
@@ -94,7 +94,7 @@ Opening up and reviewing the **azurepolicy.json** artifact will provide you deta
 
 ![Menu ResourceTypes](./media/import-policies.png)
 
-#### Example script snippit below
+#### Example script snippet below
 
 ```powershell
 Select-AzSubscription -SubscriptionName <Subscription Name>
@@ -246,7 +246,7 @@ The below example shows how to specify a specific subscriptionId as scope to tri
 
 ![policy evaluation](./media/trigger-policy-eval.png)
 
-## Overview of Trigger-PolicyInitiativeRemediation.PS1
+## Overview of Trigger-PolicyInitiativeRemediation.ps1
 
 Once your compliance evaluation has occurred for your Policy or Policy Initiative, you will likely want to review this compliance against expected outcomes and remediate those resources that are out of compliance. With an Azure Policy, this is pretty straightforward leveraging the ***Start-AzPolicyRemediation*** cmdlet (or via the Azure Portal Policy Remediation option).  However, in the case of a Policy Initiative, you cannot remediate the initiative, you need to remediate each policy contained within the intitiative.  This can be somewhat time consuming today via the portal and not easily tied together in automation.  
 
@@ -277,3 +277,4 @@ Once you have successfully executed the script to remediate the Policy Initiativ
 
 - [PowerShell Gallery (https://aka.ms/CreateAzDiagPolicies)](https://aka.ms/CreateAzDiagPolicies)
 - [Tutorial: Create and manage policies to enforce compliance](https://docs.microsoft.com/en-us/azure/governance/policy/tutorials/create-and-manage)
+- [All my PS Gallery Scripts (https://aka.ms/JimBritt)](https://aka.ms/JimBritt)
