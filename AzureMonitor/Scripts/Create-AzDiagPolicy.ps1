@@ -36,6 +36,9 @@ October 30, 2020 2.4
     and actively collaborating on improving our final enhancement!
 
     Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
+
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
 #>
 
 <#  
@@ -208,7 +211,7 @@ October 30, 2020 2.4
   New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId MyMGID -Location eastus -TemplateFile .\MgTemplateExportMG.json -TargetMGID MyMGID
 
 .NOTES
-   AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
    LASTEDIT: October 30, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
@@ -219,7 +222,10 @@ October 30, 2020 2.4
     and actively collaborating on improving our final enhancement!
     
     Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
-    
+
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+
    August 13, 2020 2.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
@@ -1943,14 +1949,18 @@ try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    $currentSub = $(Get-AzContext).Subscription.Name
+
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
     if($Token.ExpiresOn -lt $(get-date))
     {
         "Logging you out due to cached token is expired for REST AUTH.  Re-run script"
         $null = Disconnect-AzAccount        
-        break
     } 
 }
 catch
@@ -1959,7 +1969,12 @@ catch
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
 }
 
 # Authenticate to Azure if not already authenticated 

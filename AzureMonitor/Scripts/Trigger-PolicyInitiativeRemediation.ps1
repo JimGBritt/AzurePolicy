@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.3
+.VERSION 1.4
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -26,14 +26,9 @@ https://aka.ms/AzPolicyScripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 13, 2020 1.3
-    Added parameter -ADO
-    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
-
-    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
-    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
-    drift detection and remediation through automation!
-
+October 30, 2020 1.4
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
 #>
 
 <#  
@@ -96,7 +91,11 @@ August 13, 2020 1.3
   Will do everything the previous example accomplished but provides the option to run this in Azure DevOps Pipeline with an SPN
 
 .NOTES
-   AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
+   AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
+   October 30, 2020 1.4
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+    
    August 13, 2020 1.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
@@ -222,19 +221,24 @@ else
 Set-Location $CurrentDir
 
 # Login to Azure - if already logged in, use existing credentials.
+If($ADO){write-host "Leveraging ADO switch for SPN authentication in Azure DevOps"}
 Write-Host "Authenticating to Azure..." -ForegroundColor Cyan
 try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    $currentSub = $(Get-AzContext).Subscription.Name
+
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
     if($Token.ExpiresOn -lt $(get-date))
     {
         "Logging you out due to cached token is expired for REST AUTH.  Re-run script"
         $null = Disconnect-AzAccount        
-        break
     } 
 }
 catch
@@ -243,7 +247,12 @@ catch
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
 }
 
 # Authenticate to Azure if not already authenticated 
