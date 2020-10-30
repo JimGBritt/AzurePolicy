@@ -8,7 +8,7 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - October 22, 2020
+**UPDATES!**</span> - October 30, 2020
 
 - **Management Group Target Scope Support**: The **Create-AzDiagPolicy.PS1** script now supports exporting a policy initiative ARM template allowing for Management Group as a scope using the  "***-ManagementGroupDeployment***" switch
 
@@ -19,7 +19,7 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 1. **Create-AzDiagPolicy.PS1**: Used to generate the policy artifacts for Azure Diagnostics or an ARM Template (Policy Initiative) all menu driven or providing parameter options to run silently
 1. **Exported Artifacts**: The artifacts that get generated from running the script.
 1. **Import Policy / Policy Initiative to Azure**: Import one by one via Azure CLI / PowerShell (policies) or deploy the ARM template export to create all policies in an initiative in seconds!
-1. **Trigger-PolicyEvaluation.PS1**: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to relfect compliance against existing resources
+1. **Trigger-PolicyEvaluation.PS1**: Once imported and assigned to a scope in Azure, use the trigger policy evaluation script to speed up the time it takes to reflect compliance against existing resources
 1. **Trigger-PolicyInitiativeRemediation**: Leverage this script to completely remediation a policy initiative at a scope of Subscription or Management Group (creating of individual remediation jobs for each policy in a targeted assigned initiative in minutes!)
 
 ## OVERVIEW OF CREATE-AZDIAGPOLICY.PS1
@@ -28,11 +28,13 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 
 **Create-AzDiagPolicy.ps1** is a script that creates *Azure Custom Policies for Azure resource types that support Azure Diagnostics logs and metrics*.  Policies can be created for both **Event Hub and Log Analytics** sink points with this script.  Currently, this script will only provide the policies for the resource types you **have within** the Azure Subscription that you provide either via the cmdline parameter **-SubscriptionId** or by selecting a subscription from the menu provided.  This script can also be leveraged to create an **Azure Policy Initiative ARM Template**.
 
-* Optionally you can supply a **-tenant** switch to scan your entire Azure AD Tenant 
+- Optionally you can supply a **-tenant** switch to scan your entire Azure AD Tenant
 
     > **Note**:
     > Please use caution when using this option as it will take quite some time to scan thousands of subscriptions!
-* **-ManagementGroup** switch can optionally be leveraged with  **-ManagementGroupID** via parameter or select from a Management Group menu (if ManagementGroup parameter switch is utilized) 
+- **-ManagementGroup** switch can optionally be leveraged with  **-ManagementGroupID** via parameter or select from a Management Group menu (if ManagementGroup parameter switch is utilized)
+
+- **-ManagementGroupDeployment** switch can be leveraged to ensure the exported ARM template (Policy Initiative) supports Management Group as a scope deployment target
 
 ### Reviewing Available Parameters
 
@@ -42,7 +44,7 @@ The following cmdline parameters are available with this script to help customiz
 
 Parameter details are contained within the synopsis of the script for more information. From the PowerShell console type the following to get a full detailed listing of parameters and their use.
 
-```azurepowershell-interactive
+```powershell
   get-help .\Create-AzDiagPolicy.ps1 -Parameter * 
 ```
 
@@ -50,7 +52,7 @@ Parameter details are contained within the synopsis of the script for more infor
 
 Examples of how to use the script can be found by executing the following from the PowerShell console
 
-```azurepowershell-interactive
+```powershell
   get-help .\Create-AzDiagPolicy.ps1 -examples 
 ```
 
@@ -58,7 +60,7 @@ Examples of how to use the script can be found by executing the following from t
 
 The following parameters will export Event Hub and Log Analytics Policies for Azure Diagnostics to a relative path of **.\PolicyExports** and validate all JSON export content as a last step.
 
-```azurepowershell-interactive
+```powershell
   .\Create-AzDiagPolicy.ps1 -ExportEH -ExportLA -ExportDir .\PolicyExports -ValidateJSON -SubscriptionId "<SUBID>"
 ```
 
@@ -93,7 +95,7 @@ Opening up and reviewing the **azurepolicy.json** artifact will provide you deta
 
 #### Example script snippit below
 
-```azurepowershell-interactive
+```powershell
 Select-AzSubscription -SubscriptionName <Subscription Name>
 
 $definition = New-AzPolicyDefinition -Name "apply-diagnostic-setting-azsql-loganalytics" `
@@ -142,21 +144,54 @@ This script also provides the option to export a set of custom policies wrapped 
 
   > Note the display name is validated that it is less than 127 chars long if provided.  Script will break to prompt with an error if that value is either exceeded or the value is less than 1 char.  To see ARM limits please go to https://aka.ms/AzureLimits for more information.
 
-```azurepowershell-interactive
-.\Create-AzDiagPolicy.ps1 -ExportAll -ExportLA -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" -TemplateFileName 'ARMTemplateExport'
+##### Creating a ARM Template Policy Initiative (supporting **Subscription** scope deployment)
+
+```powershell
+.\Create-AzDiagPolicy.ps1 -ExportAll `
+   -ExportLA `
+   -ValidateJSON `
+   -ExportDir ".\LogPolicies" `
+   -ManagementGroup `
+   -AllRegions `
+   -ExportInitiative `
+   -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" `
+   -TemplateFileName 'ARMTemplateExport'
+```
+
+##### Creating a ARM Template Policy Initiative (supporting **Management Group** scope deployment)
+
+``` powershell
+.\Create-AzDiagPolicy.ps1 -ManagementGroupDeployment `
+   -ExportAll `
+   -ExportLA `
+   -ValidateJSON `
+   -ExportDir ".\LogPolicies" `
+   -ManagementGroup `
+   -AllRegions `
+   -ExportInitiative `
+   -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Log Analytics Workspace" `
+   -TemplateFileName 'ARMTemplateExport'
 ```
 
 #### Deploying the Exported ARM Template to Azure
 
 Once you've successfully exported your ARM Template for your custom policies supporting Azure Diagnostics (Log Analytics or Event Hub sink points), you can simply deploy the ARM template to Azure to import the related policies and policy initiative.
 
-``` azurepowershell -interactive
-Select-AzSubscription -Subscription <subscriptionID or Name>
+##### Subscription Deployment
 
+```powershell
+Select-AzSubscription -Subscription <subscriptionID or Name>
 New-AzDeployment -Name "<Deployment Name>"-TemplateFile .\exporttest\EHDemo.json -Location 'South Central US' -Verbose
 ```
 
 ![policy init deploy](./media/DeployInitiative.png)
+
+##### Management Group Deployment
+
+```powershell
+Select-AzSubscription -Subscription <subscriptionID or Name>
+New-AzManagementGroupDeployment -Name "<Deployment Name>" -ManagementGroupId "<MGID>" -Location 'eastus' -TemplateFile .\MgTemplateExportMG.json -TargetMGID "<MGID>"
+```
 
 > **Note**: On occasion, you may need to deploy the Policy Initiative ARM Template a second time due to latency in custom policy import and dependencies upon importing the policy initiative.  If a failure occurs during deployment, please try to redeploy.
 
@@ -164,7 +199,7 @@ New-AzDeployment -Name "<Deployment Name>"-TemplateFile .\exporttest\EHDemo.json
 
 For very large templates, you could utilize the following to compress your JSON within your ARM template prior to deployment. This will render the JSON unreadable but remove the whitespace and reduce the overall size of the ARM template substantially.
 
-``` azurepowershell
+``` powershell
 $JSON = $(Get-content .\EHPolicy\PolicyInitExport.json|convertfrom-json|convertto-json -depth 50 -Compress)|Out-File .\compressed.json
 ```
 
@@ -180,7 +215,7 @@ Once you have deployed your policy initiative to Azure via the exported ARM temp
 
 > <span style="color:orange">**Warning**</span> this process is destructive.  This process will also fail to remove resources that are currently assigned, or are also dependent resources in other policy initiatives within Azure.
 
-``` azurepowershell -interactive
+``` powershell
 .\Remove-PolicyInitDeployment.ps1 -subscriptionId '2bb3c706-993b-41e8-9212-3a199105f5f5' -ARMTemplate .\exporttest\ARM-Template-azurepolicyinit.json
 ```
 
@@ -194,7 +229,7 @@ Once you've assigned the policy or policy initiative to a scope (such as to a re
 
 The Trigger-PolicyEvaluation.PS1 has a few examples that can be viewed by executing the following
 
-```azurepowershell-interactive
+```powershell
   get-help .\trigger-PolicyEvaluation.ps1 -examples
 ```
 
@@ -204,7 +239,7 @@ The Trigger-PolicyEvaluation.PS1 has a few examples that can be viewed by execut
 
 The below example shows how to specify a specific subscriptionId as scope to trigger evaluation against.  Default looping to determine if the evaluation is complete is 10 seconds.  A value of 25 for interval is used to reduce the frequency of the check.
 
-```azurepowershell-interactive
+```powershell
 .\Trigger-PolicyEvaluation.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -interval 25
 ```
 
@@ -222,7 +257,7 @@ The **Trigger-PolicyInitiativeRemediation.PS1** script can be leveraged to remed
 
   > Note: Use **-force** to bypass prompt to continue.  This operation will require rights to apply assignment so review in advance.
 
-```azurepowershell-interactive
+```powershell
 .\Trigger-PolicyInitiativeRemediation.ps1 -SubscriptionId jbritt -PolicyAssignmentId "/subscriptions/fd2323a9-2324-4d2a-90f6-7e6c2fe03512/providers/Microsoft.Authorization/policyAssignments/dcf9fe2078dc45799cb34a27"
 ```
 

@@ -26,13 +26,15 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 23, 2020 2.4
+October 30, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
 
     Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
-    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it 
+    and actively collaborating on improving our final enhancement!
+
     Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
 #>
 
@@ -51,7 +53,7 @@ October 23, 2020 2.4
     Leverage this switch to export the ARM template for your policy initiative to
     support Management Group as a scope target.  This will place all resources (Custom Policies and Policy Initiative)
     in the same MG upon deployment via "New-AzManagementGroupDeployment"
-    Ex: New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId CatDev -Location eastus -TemplateFile C:\users\jbritt\Documents\Github\Demo\SPARK-DEMO\test\MgTemplateExportMG.json -ManagementGroupDeployment
+    Ex: New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId CatDev -Location eastus -TemplateFile .\MgTemplateExportMG.json -ManagementGroupDeployment -TargetMGID CatDev
 
 .PARAMETER Environment
     The cloud environment that you are needing to analyze. Default is AzureCloud
@@ -207,13 +209,15 @@ October 23, 2020 2.4
 
 .NOTES
    AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 23, 2020 2.4
+   LASTEDIT: October 30, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
 
     Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
-    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it 
+    and actively collaborating on improving our final enhancement!
+    
     Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
     
    August 13, 2020 2.3
@@ -1799,7 +1803,9 @@ function New-PolicyInitiative
     [Parameter(Mandatory=$True)]
     [string]$InitiativeDisplayName,
     [Parameter(Mandatory=$True)]
-    [string]$InitiativeName
+    [string]$InitiativeName,
+    [Parameter(Mandatory=$True)]
+    [boolean]$ManagementGroupDeployment
 )
 {
     # Scrub trailing commas
@@ -1807,7 +1813,7 @@ function New-PolicyInitiative
     $PolicyDefParams = $PolicyDefParams.substring(0,$PolicyDefParams.length -3)
     
     # Adding support for Management Group deployment scope.  If parameter switch is used for -ManagementGroupDeployment, we'll put the right JSON in to support
-    if($ManagementGroupDeployment)
+    if($ManagementGroupDeployment -eq $true)
     {
         $MGJSONParam = @'
 {
@@ -2646,7 +2652,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
 
         # Building the Policy Initiative (Note only one sink point per policy initiative [Log Analytics or EventHub])
-        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicyRSIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName
+        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicyRSIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName -ManagementGroupDeployment $ManagementGroupDeployment
         
         # Ensure JSON is formatted on export
         $PolicyInititiative = Format-JSON -JSON $PolicyInititiative
