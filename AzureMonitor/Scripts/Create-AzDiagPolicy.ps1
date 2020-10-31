@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.3
+.VERSION 2.4
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,14 +26,19 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-August 13, 2020 2.3
-    Added parameter -ADO
-    This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
+October 30, 2020 2.4
+    Added parameter -ManagementGroupDeployment for ARM Export
+    This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
+    group target scope.
 
-    Special Thanks to Nikolay Sucheninov and the VIAcode team for working to get these scripts
-    integrated and operational in Azure DevOps to streamline "Policy as Code" processes with version
-    drift detection and remediation through automation!
+    Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it 
+    and actively collaborating on improving our final enhancement!
 
+    Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
+
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
 #>
 
 <#  
@@ -46,6 +51,12 @@ August 13, 2020 2.3
   This script takes a SubscriptionID, ResourceType, ResourceGroup as parameters, analyzes the subscription or
   specific ResourceGroup defined for the resources specified in $Resources, and builds a custom policy for 
   diagnostic metrics/logs for Event Hubs, Storage and Log Analytics as sink points for selected resource types.
+
+.PARAMETER ManagementGroupDeployment
+    Leverage this switch to export the ARM template for your policy initiative to
+    support Management Group as a scope target.  This will place all resources (Custom Policies and Policy Initiative)
+    in the same MG upon deployment via "New-AzManagementGroupDeployment"
+    Ex: New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId CatDev -Location eastus -TemplateFile .\MgTemplateExportMG.json -ManagementGroupDeployment -TargetMGID CatDev
 
 .PARAMETER Environment
     The cloud environment that you are needing to analyze. Default is AzureCloud
@@ -192,9 +203,30 @@ August 13, 2020 2.3
 .\Create-AzDiagPolicy.ps1 -ADO -Environment AzureUSGovernment -ExportAll -ExportStorage -ValidateJSON -ExportDir ".\LogPolicies" -ManagementGroup -AllRegions -ExportInitiative -InitiativeDisplayName "Azure Diagnostics Policy Initiative for a Regional Storage Account" -TemplateFileName 'ARMTemplateExport'
   Same as previous example, but enabling the script to run in Azure DevOps
 
+.EXAMPLE
+.\Create-AzDiagPolicy.ps1 -ExportDir .\LogPolicies -ExportAll -ExportLA -ExportInitiative -TemplateFileName MgTemplateExportMG -ManagementGroupDeployment -AllRegions
+  Exports an ARM Template Policy Initiative supporting a Management Group supporting all Logs for Log Analytics and all regions supported
+  NOTE: Use the following example to deploy this template to a target management group
+
+  New-AzManagementGroupDeployment -Name DiagAzurePolicyInit -ManagementGroupId MyMGID -Location eastus -TemplateFile .\MgTemplateExportMG.json -TargetMGID MyMGID
+
 .NOTES
-   AUTHOR: Jim Britt Senior Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: August 13, 2020 2.3
+   AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
+   LASTEDIT: October 30, 2020 2.4
+    Added parameter -ManagementGroupDeployment for ARM Export
+    This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
+    group target scope.
+
+    Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
+    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it 
+    and actively collaborating on improving our final enhancement!
+    
+    Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
+
+    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
+    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+
+   August 13, 2020 2.3
     Added parameter -ADO
     This parameter provides the option to run this script leveraging an SPN in Azure DevOps.
 
@@ -313,6 +345,14 @@ param
     [Parameter(ParameterSetName='ManagementGroup')]
     [Parameter(ParameterSetName='Export')]
     [switch]$ADO = $False,
+
+    # Default of $False assumes subscription as target - if $True will modify intiative properties to support MG target
+    [Parameter(ParameterSetName='Default',Mandatory = $False)]
+    [Parameter(ParameterSetName='Subscription')]
+    [Parameter(ParameterSetName='Tenant')]
+    [Parameter(ParameterSetName='ManagementGroup')]
+    [Parameter(ParameterSetName='Export')]
+    [switch]$ManagementGroupDeployment=$False,
 
     # Export Directory Path for Artifacts - if not set - will default to script directory
     [Parameter(ParameterSetName='Default',Mandatory = $False)]
@@ -1769,19 +1809,39 @@ function New-PolicyInitiative
     [Parameter(Mandatory=$True)]
     [string]$InitiativeDisplayName,
     [Parameter(Mandatory=$True)]
-    [string]$InitiativeName
+    [string]$InitiativeName,
+    [Parameter(Mandatory=$True)]
+    [boolean]$ManagementGroupDeployment
 )
 {
     # Scrub trailing commas
     $PolicyRSIDs = $PolicyRSIDs.substring(0,$PolicyRSIDs.length -3)
     $PolicyDefParams = $PolicyDefParams.substring(0,$PolicyDefParams.length -3)
     
+    # Adding support for Management Group deployment scope.  If parameter switch is used for -ManagementGroupDeployment, we'll put the right JSON in to support
+    if($ManagementGroupDeployment -eq $true)
+    {
+        $MGJSONParam = @'
+{
+    "TargetMGID": {
+        "type": "string",
+        "defaultValue": ""
+    }
+}
+'@
+        $schema = "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#"
+    }
+    else
+    {
+        $MGJSONParam = '{}'
+        $schema = "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
+    }
     # Build Template reference for Policy Initiative
     $InitiativeTemplate = @'
 {
-    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "$schema": "<SUB OR MG SCHEMA>",
     "contentVersion": "1.0.0.0",
-    "parameters": {},
+    "parameters": <ManagementGroupID>,
     "resources": [
         <AzurePolicyPropertyBag>
         {
@@ -1813,6 +1873,8 @@ function New-PolicyInitiative
     $InitiativeTemplate = $InitiativeTemplate.Replace("<Policy INIT RESIDs>", $PolicyRSIDs)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<ParametersGoHere>", $Parameters)
     $InitiativeTemplate = $InitiativeTemplate.Replace("<PolicyDefParams>", $PolicyDefParams)
+    $InitiativeTemplate = $InitiativeTemplate.Replace("<ManagementGroupID>", $MGJSONParam)
+    $InitiativeTemplate = $InitiativeTemplate.Replace("<SUB OR MG SCHEMA>", $schema)
 
     $InitiativeTemplate
 }
@@ -1887,14 +1949,18 @@ try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    $currentSub = $(Get-AzContext).Subscription.Name
+
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
     if($Token.ExpiresOn -lt $(get-date))
     {
         "Logging you out due to cached token is expired for REST AUTH.  Re-run script"
         $null = Disconnect-AzAccount        
-        break
     } 
 }
 catch
@@ -1903,7 +1969,12 @@ catch
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
     if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else{$token = $currentContext.TokenCache.ReadItems() | Where-Object {$_.tenantid -eq $currentContext.Tenant.Id}}
+    else
+    {
+        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+    }
 }
 
 # Authenticate to Azure if not already authenticated 
@@ -2220,8 +2291,17 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
+                    # If we are exporting for Management Group - update RSID to support management group navigation
+                    if($ManagementGroupDeployment)
+                    {
+                        $PolicyRSID = """[concat('/providers/Microsoft.Management/managementGroups/', parameters('TargetMGID'), '/providers/Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+                    # If not exporting for MG, leverage standard ResourceID
+                    else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+                        
                     
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-LogAnalyticsJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
@@ -2587,7 +2667,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         }
 
         # Building the Policy Initiative (Note only one sink point per policy initiative [Log Analytics or EventHub])
-        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicyRSIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName
+        $PolicyInititiative = New-PolicyInitiative -PolicyBag $PolicyBag -PolicyRSIDs $PolicyRSIDs -PolicyDefParams $PolicyDefParams -Parameters $PolicyJSON[0] -sinkDest $sinkDest -InitiativeDisplayName $InitiativeDisplayName -InitiativeName $InitiativeName -ManagementGroupDeployment $ManagementGroupDeployment
         
         # Ensure JSON is formatted on export
         $PolicyInititiative = Format-JSON -JSON $PolicyInititiative
