@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.2
+.VERSION 1.3
 
 .GUID efd1a650-e9e6-4cd3-beca-cc0e940cc672
 
@@ -26,9 +26,8 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 30, 2020 1.2
-    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
-    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+November 03, 2020 1.3
+    Fixed a bug with REST API logic
 #>
 
 <#  
@@ -72,7 +71,10 @@ October 30, 2020 1.2
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 30, 2020 1.2 - Updates
+   LASTEDIT: November 03, 2020 1.3
+    Fixed a bug with REST API logic
+
+   October 30, 2020 1.2 - Updates
     Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
     If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
 
@@ -155,7 +157,7 @@ try
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
     if($Token.ExpiresOn -lt $(get-date))
     {
@@ -173,7 +175,7 @@ catch
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
 }
 

@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.4
+.VERSION 2.5
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,19 +26,8 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 30, 2020 2.4
-    Added parameter -ManagementGroupDeployment for ARM Export
-    This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
-    group target scope.
-
-    Special Thanks to Kristian Nese (https://github.com/krnese) for my sounding board and using his big brain to work through some of the ARM goo.
-    Thank you Kamil (https://github.com/kwiecek) to for pushing for this feature to help improve the experience for our customersk leveraging it 
-    and actively collaborating on improving our final enhancement!
-
-    Thank you Dimitri Lider (https://github.com/dimilider) for the additional collaboration and also looking out for improving this script!
-
-    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
-    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+November 03, 2020 2.5
+    Fixed a bug with REST API logic
 #>
 
 <#  
@@ -212,7 +201,10 @@ October 30, 2020 2.4
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: October 30, 2020 2.4
+   LASTEDIT: November 03, 2020 2.5
+    Fixed a bug with REST API logic
+
+   October 30, 2020 2.4
     Added parameter -ManagementGroupDeployment for ARM Export
     This parameter switch provides the option to export an ARM Template Policy Initiative that supports a Management
     group target scope.
@@ -1955,7 +1947,7 @@ try
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
     if($Token.ExpiresOn -lt $(get-date))
     {
@@ -1973,7 +1965,7 @@ catch
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
 }
 

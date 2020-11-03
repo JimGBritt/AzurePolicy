@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.4
+.VERSION 1.5
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -26,9 +26,8 @@ https://aka.ms/AzPolicyScripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-October 30, 2020 1.4
-    Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
-    If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
+November 03, 2020 1.5
+    Fixed a bug with REST API logic
 #>
 
 <#  
@@ -92,6 +91,9 @@ October 30, 2020 1.4
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
+   November 03, 2020 1.5
+    Fixed a bug with REST API logic
+
    October 30, 2020 1.4
     Changed REST API Token creation due to a recent breaking change I observed where the old way no longer worked.
     If you have any issues with this change, please let me know here on Github (https://aka.ms/AzPolicyScripts)
@@ -233,7 +235,7 @@ try
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
     if($Token.ExpiresOn -lt $(get-date))
     {
@@ -251,7 +253,7 @@ catch
     {
         $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
         $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
     }
 }
 
