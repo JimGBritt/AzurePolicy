@@ -8,10 +8,9 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - October 30, 2020
+**UPDATES!**</span> - November 03, 2020
 
-- **Management Group Target Scope Support**: The **Create-AzDiagPolicy.PS1** script now supports exporting a policy initiative ARM template allowing for Management Group as a scope using the  "***-ManagementGroupDeployment***" switch
-- REST API Auth Updates across all scripts due to a recent change in REST API auth to Azure seems to be caching older tokens creating issues with auth.  Please reach out if this change causes issues!
+- **REST API Auth Bug Fixed**: Due to some changes introduced to fix a REST Auth issue, a bug was also introduced in that auth logic.  This has been fixed in all scripts in this repo.
 
 ## Flow Diagram
 
