@@ -121,15 +121,15 @@ Finally - you can select the policy to review the actual contents (JSON) within 
 
 From here you can assign this individual policy to a scope (Subscription/Management Group / Resource Group) to enforce it within your environment.
 
-### Event Hub, Storage, and Log Analytics **Policy Initiatve** ARM Templates 
+### Event Hub, Storage, and Log Analytics **Policy Initiative** ARM Templates 
 
-This script also provides the option to export a set of custom policies wrapped in a Policy Iniative in an exported ARM template that can be imported into Azure via an ARM deployment to be able to be assigned to a scope.  The benefits of this option are:
+This script also provides the option to export a set of custom policies wrapped in a Policy Initiative in an exported ARM template that can be imported into Azure via an ARM deployment to be able to be assigned to a scope.  The benefits of this option are:
 
 1. A single Policy Initiative can be assigned to a scope instead of multiple policies being assigned individually per resourceType
 
-1. A single Policy Initiative will leverage a single Managed Idenity upon Policy Initiative assignment (in contrast to a single Managed Idenity per policy if assigned per resourceType individually)
+1. A single Policy Initiative will leverage a single Managed Identity upon Policy Initiative assignment (in contrast to a single Managed Identity per policy if assigned per resourceType individually)
 
-1. A Policy Initiative supported by an ARM template deployment can be deployed seamlessly with a single command and mangaement of this initiative is much more straight forward that managing 10's of policies utilizing the same parameters.
+1. A Policy Initiative supported by an ARM template deployment can be deployed seamlessly with a single command and management of this initiative is much more straight forward that managing 10's of policies utilizing the same parameters.
 
 #### Creating a Policy Initiative ARM Template for Log Analytics, Azure Storage, or Event Hub
 
@@ -209,9 +209,9 @@ Go to Policy 🠊 Definitions 🠊 Initiative (definition type) 🠊 Custom (typ
 
 ![policy init view](./media/EH-PolicyInitiative.png)
 
-#### Removing a Deployed Policy Initiatve
+#### Removing a Deployed Policy Initiative
 
-Once you have deployed your policy initiative to Azure via the exported ARM template, you may be interested in potentially removing and redeploying (for testing / redeployment with new settings and parameters).  The following script has been provided to allow you to point at an ARM Template used to deploy a Policy Initiative, and remove the initaitive and dependenct policies from Azure.  
+Once you have deployed your policy initiative to Azure via the exported ARM template, you may be interested in potentially removing and redeploying (for testing / redeployment with new settings and parameters).  The following script has been provided to allow you to point at an ARM Template used to deploy a Policy Initiative, and remove the initiative and dependent policies from Azure.  
 
 > <span style="color:orange">**Warning**</span> this process is destructive.  This process will also fail to remove resources that are currently assigned, or are also dependent resources in other policy initiatives within Azure.
 
@@ -247,11 +247,11 @@ The below example shows how to specify a specific subscriptionId as scope to tri
 
 ## Overview of Trigger-PolicyInitiativeRemediation.ps1
 
-Once your compliance evaluation has occurred for your Policy or Policy Initiative, you will likely want to review this compliance against expected outcomes and remediate those resources that are out of compliance. With an Azure Policy, this is pretty straightforward leveraging the ***Start-AzPolicyRemediation*** cmdlet (or via the Azure Portal Policy Remediation option).  However, in the case of a Policy Initiative, you cannot remediate the initiative, you need to remediate each policy contained within the intitiative.  This can be somewhat time consuming today via the portal and not easily tied together in automation.  
+Once your compliance evaluation has occurred for your Policy or Policy Initiative, you will likely want to review this compliance against expected outcomes and remediate those resources that are out of compliance. With an Azure Policy, this is pretty straightforward leveraging the ***Start-AzPolicyRemediation*** cmdlet (or via the Azure Portal Policy Remediation option).  However, in the case of a Policy Initiative, you cannot remediate the initiative, you need to remediate each policy contained within the initiative.  This can be somewhat time consuming today via the portal and not easily tied together in automation.  
 
 ### Triggering a Remediation for a Policy Initiative
 
-The **Trigger-PolicyInitiativeRemediation.PS1** script can be leveraged to remediate a Policy Initiative that has been assigned to a scope at a Subscription or Management Group.  This script evaluates the assigned Policy Initiative and ensures that all sub policies contained within recieve a remediation assignment that will kick off immediately for each policy to attempt to bring the resources to 100% compliance.
+The **Trigger-PolicyInitiativeRemediation.PS1** script can be leveraged to remediate a Policy Initiative that has been assigned to a scope at a Subscription or Management Group.  This script evaluates the assigned Policy Initiative and ensures that all sub policies contained within receive a remediation assignment that will kick off immediately for each policy to attempt to bring the resources to 100% compliance.
 
 #### Example: Trigger remediation at Subscription Scope and provided PolicyAssignmentId (of Policy Initiative) to remediate
 
