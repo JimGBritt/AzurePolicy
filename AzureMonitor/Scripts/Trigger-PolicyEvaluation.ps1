@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.3
+.VERSION 1.4
 
 .GUID efd1a650-e9e6-4cd3-beca-cc0e940cc672
 
@@ -26,8 +26,8 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 03, 2020 1.3
-    Fixed a bug with REST API logic
+November 11, 2020 1.4
+    Fixed more issues with REST API logic due to updates to Az cmdlets
 #>
 
 <#  
@@ -45,6 +45,7 @@ November 03, 2020 1.3
 
 .PARAMETER ResourceGroupName
     If desired, use a resourcegroup in addition to SubscriptionID to narrow in on a scope of ResourceGroup to evaluate policy compliance 
+    (no op - deprecated)
 
 .PARAMETER Interval
     Specify an interval in seconds (default is 20) to check for status of trigger - loops until complete.
@@ -71,7 +72,10 @@ November 03, 2020 1.3
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: November 03, 2020 1.3
+   LASTEDIT: November 11, 2020 1.4
+    Fixed more issues with REST API logic due to updates to Az cmdlets
+
+   November 03, 2020 1.3
     Fixed a bug with REST API logic
 
    October 30, 2020 1.2 - Updates
@@ -145,38 +149,27 @@ function BuildBody
     $BuildBody
 }  
 # Login to Azure - if already logged in, use existing credentials.
-If($ADO){write-host "Leveraging ADO switch for SPN authentication in Azure DevOps"}
 Write-Host "Authenticating to Azure..." -ForegroundColor Cyan
 try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
 
-    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else
-    {
-        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
-        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
-    }
-    if($Token.ExpiresOn -lt $(get-date))
-    {
-        "Logging you out due to cached token is expired for REST AUTH.  Re-run script"
-        $null = Disconnect-AzAccount        
-    } 
+    # Establish REST Token
+    $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+    $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+    $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
 }
 catch
 {
     $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
-    if($ADO){$token = $currentContext.TokenCache.ReadItems()}
-    else
-    {
-        $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
-        $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
-        $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
-    }
+    
+    # Establish REST Token
+    $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+    $profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+    $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
 }
 
 If($AzureLogin -and !($SubscriptionID))
