@@ -1935,6 +1935,7 @@ If(!($ExportDir))
 $SubScriptionsToProcess = $null
 
 # Login to Azure - if already logged in, use existing credentials.
+If($ADO){write-host "ADO switch deprecated and no longer necessary" -ForegroundColor Yellow}
 Write-Host "Authenticating to Azure..." -ForegroundColor Cyan
 try
 {
@@ -1958,7 +1959,16 @@ catch
     $token = $profileClient.AcquireAccessToken($currentContext.Subscription.TenantId)
 }
 
-# Authenticate to Azure if not already authenticated 
+Try
+{
+    $Subscription = Get-AzSubscription -SubscriptionId $subscriptionId
+}
+catch
+{
+    Write-Host "Subscription not found"
+    break
+}
+
 # Ensure this is the subscription where your Azure Resources are you want to send diagnostic data from
 If($AzureLogin -and !($SubscriptionID) -and !($Tenant) -and !($ManagementGroup))
 {
