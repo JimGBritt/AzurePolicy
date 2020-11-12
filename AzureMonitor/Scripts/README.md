@@ -8,9 +8,9 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - November 03, 2020
+**UPDATES!**</span> - November 11, 2020
 
-- **REST API Auth Bug Fixed**: Due to some changes introduced to fix a REST Auth issue, a bug was also introduced in that auth logic.  This has been fixed in all scripts in this repo.
+- **Fixed more issues with REST API logic due to updates to Az cmdlets**: Due to some changes introduced with newer Az cmdlets, REST auth logic had to be reworked.  ADO switch is also no longer necessary for ADO.  This has been fixed in all scripts in this repo.
 
 ## Flow Diagram
 
