@@ -226,6 +226,7 @@ try
 {
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
+    $CurrentSub = $currentContext.Subscription
 
     # Establish REST Token
     $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
@@ -237,6 +238,7 @@ catch
     $null = Login-AzAccount -Environment $Environment
     $AzureLogin = Get-AzSubscription
     $currentContext = Get-AzContext
+    $CurrentSub = $currentContext.Subscription
     
     # Establish REST Token
     $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
