@@ -8,10 +8,25 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - November 11, 2020
+**UPDATES!**</span> - February 12, 2021
 
-- **Fixed more issues with REST API logic due to updates to Az cmdlets**: Due to some changes introduced with newer Az cmdlets, REST auth logic had to be reworked.  ADO switch is also no longer necessary for ADO.  This has been fixed in all scripts in this repo.
+**Create-AzDiagPolicy.PS1**
 
+*Minor updates*
+
+* **Huge thanks** to **Panagiotis Tsoukias** (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+  * Fixed some missing logic for Management Groups in PolicyID logic
+* **Another huge thanks** to **Nikolay Sucheninov** and the VIAcode team for fixing the following issues raised by ARM TTK
+  * Fixed schema URLs to use https
+  * Removed redundant dependsOn logic that was not necessary or even functional
+  
+**Trigger-PolicyInitiativeRemediation**
+
+*Minor updates*
+* Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+    * Fixed logic for missing $CurrentSub variable
+
+  *Thank you for supporting the script and community effort around this solution - everyone benefits!*
 ## Flow Diagram
 
 ![ScriptFlow](./media/ScriptOverview.png)
