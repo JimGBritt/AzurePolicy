@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.6
+.VERSION 1.7
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -26,8 +26,10 @@ https://aka.ms/AzPolicyScripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 11, 2020 1.6
-    Fixed more issues with REST API logic due to updates to Az cmdlets
+Feb 12, 2021 1.7
+    Minor updates
+    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+        * Fixed logic for missing $CurrenSub variable
 #>
 
 <#  
@@ -85,6 +87,11 @@ November 11, 2020 1.6
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
+   Feb 12, 2021 1.7
+    Minor updates
+    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+        * Fixed logic for missing $CurrenSub variable
+        
    November 11, 2020 1.6
     Fixed more issues with REST API logic due to updates to Az cmdlets
     
