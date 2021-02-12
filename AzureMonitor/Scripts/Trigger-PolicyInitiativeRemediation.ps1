@@ -29,7 +29,7 @@ https://aka.ms/AzPolicyScripts
 Feb 12, 2021 1.7
     Minor updates
     * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-        * Fixed logic for missing $CurrenSub variable
+        * Fixed logic for missing $CurrentSub variable
 #>
 
 <#  
@@ -90,7 +90,7 @@ Feb 12, 2021 1.7
    Feb 12, 2021 1.7
     Minor updates
     * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-        * Fixed logic for missing $CurrenSub variable
+        * Fixed logic for missing $CurrentSub variable
         
    November 11, 2020 1.6
     Fixed more issues with REST API logic due to updates to Az cmdlets
