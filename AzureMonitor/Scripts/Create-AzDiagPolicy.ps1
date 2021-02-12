@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.6
+.VERSION 2.7
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,8 +26,14 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 11, 2020 2.6
-    Fixed more issues with REST API logic due to updates to Az cmdlets
+Feb 12, 2021 2.7
+    Minor updates
+    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+        * Fixed some missing logic for Management Groups in PolicyID logic
+    * Another huge thanks to Nikolay Sucheninov and the VIAcode team for fixing the following issues raised by ARM TTK
+        * Fixed schema URLs to use https
+        * Removed redundant dependsOn logic that was not necessary or even functional
+    *** Thank you for supporting the script and community effort around this solution - everyone benefits! ****
 #>
 
 <#  
@@ -198,7 +204,16 @@ November 11, 2020 2.6
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: November 11, 2020 2.6
+   LASTEDIT: Feb 12, 2021 2.7
+    Minor updates
+    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
+        * Fixed some missing logic for Management Groups in PolicyID logic
+    * Another huge thanks to Nikolay Sucheninov and the VIAcode team for fixing the following issues raised by ARM TTK
+        * Fixed schema URLs to use https
+        * Removed redundant dependsOn logic that was not necessary or even functional
+    *** Thank you for supporting the script and community effort around this solution - everyone benefits! ****
+
+   November 11, 2020 2.6
     Fixed more issues with REST API logic due to updates to Az cmdlets
     
    November 03, 2020 2.5
@@ -764,7 +779,7 @@ $JSONRULES = @'
                         "properties": {
                             "mode": "incremental",
                             "template": {
-                                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
                                 "contentVersion": "1.0.0.0",
                                 "parameters": {
                                     "name": {
@@ -789,7 +804,6 @@ $JSONRULES = @'
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
                                         "apiVersion": "2017-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",                                        
-                                        "dependsOn": [],
                                         "properties": {
                                             "workspaceId": "[parameters('logAnalytics')]",<METRICS ARRAY><LOGS ARRAY>                                        
                                         }
@@ -921,7 +935,7 @@ $JSONRULES = @'
                         "properties": {
                             "mode": "incremental",
                             "template": {
-                                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
                                 "contentVersion": "1.0.0.0",
                                 "parameters": {
                                     "name": {
@@ -950,7 +964,6 @@ $JSONRULES = @'
                                         "apiVersion": "2017-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
-                                        "dependsOn": [],
                                         "properties": {
                                             "workspaceId": "[parameters('logAnalytics')]",<METRICS ARRAY><LOGS ARRAY>                                        
                                         }
@@ -1270,7 +1283,7 @@ $JSONRULES = @'
                         "properties": {
                             "mode": "incremental",
                             "template": {
-                                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
                                 "contentVersion": "1.0.0.0",
                                 "parameters": {
                                     "name": {
@@ -1302,7 +1315,6 @@ $JSONRULES = @'
                                         "apiVersion": "2017-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
-                                        "dependsOn": [],
                                         "properties": {
                                             "eventHubName": "[last(split(parameters('eventHubName'), '/'))]",
                                             "eventHubAuthorizationRuleId": "[parameters('eventHubRuleId')]",<METRICS ARRAY><LOGS ARRAY>
@@ -1584,7 +1596,7 @@ $JSONRULES = @'
                         "properties": {
                             "mode": "incremental",
                             "template": {
-                                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
                                 "contentVersion": "1.0.0.0",
                                 "parameters": {
                                     "name": {
@@ -1613,7 +1625,6 @@ $JSONRULES = @'
                                         "apiVersion": "2017-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
-                                        "dependsOn": [],
                                         "properties": {
                                             "storageAccountId": "[parameters('storageAccountId')]",<METRICS ARRAY><LOGS ARRAY>
                                         }
@@ -2448,7 +2459,16 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
-                    $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    # If we are exporting for Management Group - update RSID to support management group navigation
+                    if($ManagementGroupDeployment)
+                    {
+                        $PolicyRSID = """[concat('/providers/Microsoft.Management/managementGroups/', parameters('TargetMGID'), '/providers/Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+                    # If not exporting for MG, leverage standard ResourceID
+                    else {
+                        $PolicyRSID = """[resourceId('Microsoft.Authorization/policyDefinitions/', '$($ShortNameRT)')]"""
+                    }
+
                     $PolicyRSIDs = $PolicyRSIDs + "                "  + $PolicyRSID + "," + "`r`n"
                     $JSONTYPE = $JSONType.replace("<SHORT NAME OF SERVICE>", "$($ShortNameRT)")
                     $PolicyJSON = Update-StorageJSON -resourceType $Type.ResourceType -metricsArray $metricsArray -logsArray $logsArray -nameField $RPVar[1] -JSONType $JSONType -ExportInitiative $ExportInitiative -kind $Type.Kind -PolicyResourceDisplayName $PolicyResourceDisplayName -PolicyName $ShortNameRT
