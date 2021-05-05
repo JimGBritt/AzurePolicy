@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.7
+.VERSION 1.8
 
 .GUID 5d5c9fe8-85a7-427d-88e7-6c44f61271ce
 
@@ -26,10 +26,10 @@ https://aka.ms/AzPolicyScripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-Feb 12, 2021 1.7
+May 05, 2021 1.8
     Minor updates
-    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-        * Fixed logic for missing $CurrentSub variable
+    * Huge thanks to Rob Beyreis (https://github.com/robey-ms) Principal Svc Eng Mgr at Microsoft for fixing the following
+        * Fixed logic for ManagementGroupID for policy initiative remediation.
 #>
 
 <#  
@@ -87,6 +87,11 @@ Feb 12, 2021 1.7
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
+   May 05, 2021 1.8
+    Minor updates
+    * Huge thanks to Rob Beyreis (https://github.com/robey-ms) Principal Svc Eng Mgr at Microsoft for fixing the following
+        * Fixed logic for ManagementGroupID for policy initiative remediation.
+
    Feb 12, 2021 1.7
     Minor updates
     * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
