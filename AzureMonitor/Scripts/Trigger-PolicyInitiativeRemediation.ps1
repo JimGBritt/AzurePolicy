@@ -463,8 +463,15 @@ if ($Force -OR $PSCmdlet.ShouldContinue("Create a set of remediation tasks for P
     {
         try {
             $Count++
-            write-host "Creating remediation for Policy $Count of $Totalcount - Remediation-$PolicyDefRefID"
-            $null = Start-AzPolicyRemediation -PolicyAssignmentId $PolicyAssignmentID -PolicyDefinitionReferenceId $PolicyDefRefID -Name "Remediation-$PolicyDefRefID"
+            if ($ManagementGroup)
+            {
+                write-host "Creating remediation for Policy $Count of $Totalcount - Remediation-$PolicyDefRefID-$($PolicyAssignMent.Properties.displayName)"
+                $null = Start-AzPolicyRemediation -PolicyAssignmentId $PolicyAssignmentID -PolicyDefinitionReferenceId $PolicyDefRefID -Name "Remediation-$PolicyDefRefID-$($PolicyAssignMent.Properties.displayName)" -ManagementGroup $ManagementGroupID
+            }
+            else {
+                write-host "Creating remediation for Policy $Count of $Totalcount - Remediation-$PolicyDefRefID"
+                $null = Start-AzPolicyRemediation -PolicyAssignmentId $PolicyAssignmentID -PolicyDefinitionReferenceId $PolicyDefRefID -Name "Remediation-$PolicyDefRefID"        
+            }
         }
         catch {
             Write-Host "Something went wrong creating the policy remediation" -ForegroundColor Red
