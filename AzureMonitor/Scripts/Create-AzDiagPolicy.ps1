@@ -31,6 +31,8 @@ May 05, 2021 2.8
     * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
       Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
 
+      THANK YOU Eric Golpe (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+
       Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
       support it.  Otherwise, the default will be AzureDiagnostics table
 #>
@@ -218,6 +220,8 @@ May 05, 2021 2.8
     * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
       Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
 
+      THANK YOU Eric Golpe (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+      
       Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
       support it.  Otherwise, the default will be AzureDiagnostics table
 
