@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.7
+.VERSION 2.8
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,14 +26,15 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-Feb 12, 2021 2.7
-    Minor updates
-    * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-        * Fixed some missing logic for Management Groups in PolicyID logic
-    * Another huge thanks to Nikolay Sucheninov and the VIAcode team for fixing the following issues raised by ARM TTK
-        * Fixed schema URLs to use https
-        * Removed redundant dependsOn logic that was not necessary or even functional
-    *** Thank you for supporting the script and community effort around this solution - everyone benefits! ****
+May 05, 2021 2.8
+    Update
+    * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
+      Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
+
+      THANK YOU Eric Golpe (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+
+      Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
+      support it.  Otherwise, the default will be AzureDiagnostics table
 #>
 
 <#  
@@ -123,10 +124,20 @@ Feb 12, 2021 2.7
     This parameter allows you to run this script in Azure DevOps pipeline utilizing an SPN
     (no op - deprecated)
 
+.PARAMETER Dedicated
+    This parameter allows you to specify a dedicated table for Azure Diagnostics for those ResourceTypes that support it
+    
+
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
   Take in parameters and execute silently without prompting against the scope of a resourceType, Resource Group, with a specified subscriptionID as scope
-  
+
+.EXAMPLE
+  .\Create-AzDiagPolicy.ps1 -Dedicated -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
+  Same as above but will allow for dedicated table for Log Analytics specific policies exported (for those ResourceTypes that support it).  
+
+  Note: This is a blanket setting when used with a Policy Initiative Export.  The setting will only enabled dedicated support for those resourceTypes that support it.
+
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -ExportLA
   Will prompt for subscriptionID to leverage for analysis, prompt for which resourceTypes to export for policies, and export the policies specific
@@ -204,7 +215,17 @@ Feb 12, 2021 2.7
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: Feb 12, 2021 2.7
+   LASTEDIT: May 05, 2021 2.8
+   Updates
+    * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
+      Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
+
+      THANK YOU Eric Golpe (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+      
+      Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
+      support it.  Otherwise, the default will be AzureDiagnostics table
+
+   Feb 12, 2021 2.7
     Minor updates
     * Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
         * Fixed some missing logic for Management Groups in PolicyID logic
@@ -459,6 +480,9 @@ param
     # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive
     [switch]$AllRegions=$False,
 
+    # Dedicated switch to allow log Analytics to use a dedicated table instead of AzureDiagnostics table (if supported)
+    [switch]$Dedicated=$False,
+
     # Add ResourceType to reduce scope to Resource Type instead of entire list of resources to scan
     [Parameter(ParameterSetName='Export')]
     [Parameter(ParameterSetName='Subscription')]
@@ -623,7 +647,9 @@ function Add-IndexNumberToArray (
 function New-LogArray
 (
      [Parameter(Mandatory=$True)]
-     [array]$logCategories
+     [array]$logCategories,
+     [Parameter(Mandatory=$False)]
+     $Dedicated
 )
 {
     $logsArray += '
@@ -638,6 +664,11 @@ function New-LogArray
         $logsArray = $logsArray.Substring(0,$logsArray.Length-1)
         $logsArray += '
                                                 ]'
+    if($Dedicated)
+    {
+        $logsArray += ',
+        "logAnalyticsDestinationType": "Dedicated"'
+    }
     $logsArray
 }
 
@@ -2257,7 +2288,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($Type.logs)
             {
                 $Logcategories = $Type.Categories
-                $logsArray = New-LogArray $Logcategories
+                $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
             }
             if($Type.metrics)
             {
@@ -2527,7 +2558,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         if($DiagnosticCapable[$ResourceTypeToProcess -1].Logs)
         {
             $logcategories = $DiagnosticCapable[$ResourceTypeToProcess -1].Categories
-            $logsArray = New-LogArray $Logcategories
+            $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
         }
         else
         {
