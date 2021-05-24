@@ -8,25 +8,28 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - February 12, 2021
+**UPDATES!**</span> - May 05, 2021
 
 **Create-AzDiagPolicy.PS1**
 
 *Minor updates*
 
-* **Huge thanks** to **Panagiotis Tsoukias** (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-  * Fixed some missing logic for Management Groups in PolicyID logic
-* **Another huge thanks** to **Nikolay Sucheninov** and the VIAcode team for fixing the following issues raised by ARM TTK
-  * Fixed schema URLs to use https
-  * Removed redundant dependsOn logic that was not necessary or even functional
+- Added the ability to leverage a **dedicated table** (instead of AzureDiagnostics) for resourceTypes that support it
+
+Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
+
+THANK YOU **Eric Golpe** (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+
+Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
+support it.  Otherwise, the default will be AzureDiagnostics table
   
 **Trigger-PolicyInitiativeRemediation**
 
 *Minor updates*
-* Huge thanks to Panagiotis Tsoukias (https://github.com/ptsouk) Customer Engineer at Microsoft for fixing the following
-    * Fixed logic for missing $CurrentSub variable
+Huge thanks to Rob Beyreis (https://github.com/robey-ms) Principal Svc Eng Mgr at Microsoft for fixing the following
 
-  *Thank you for supporting the script and community effort around this solution - everyone benefits!*
+- Fixed logic for ManagementGroupID for policy initiative remediation.
+
 ## Flow Diagram
 
 ![ScriptFlow](./media/ScriptOverview.png)
