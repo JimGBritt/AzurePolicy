@@ -8,27 +8,25 @@ This documentation is meant to provide a guide to the use of the scripts sourced
 - [Overview of Trigger-PolicyEvaluation.PS1](./README.md#overview-of-trigger-policyEvaluationps1) 
 - [Overview of Trigger-PolicyInitiativeRemediation.PS1](./README.md#overview-of-trigger-policyinitiativeremediationps1)
 
-**UPDATES!**</span> - May 05, 2021
+**UPDATES!**</span> - September 07, 2021
 
 **Create-AzDiagPolicy.PS1**
 
-*Minor updates*
+*Minor update*
 
-- Added the ability to leverage a **dedicated table** (instead of AzureDiagnostics) for resourceTypes that support it
+September 07, 2021 2.9
+    
+  * Updated the API version for both below types.  This was recently caught with the help of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy within the ARM template that is generated as part of this script. 
 
-Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
+    `"type": "Microsoft.Authorization/policyDefinitions",
+     "apiVersion": "2020-09-01"`
+    
+     **and**
+    
+    `"type": "Microsoft.Authorization/policySetDefinitions",
+    "apiVersion": "2020-09-01"`
 
-THANK YOU **Eric Golpe** (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
-
-Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
-support it.  Otherwise, the default will be AzureDiagnostics table
-  
-**Trigger-PolicyInitiativeRemediation**
-
-*Minor updates*
-Huge thanks to Rob Beyreis (https://github.com/robey-ms) Principal Svc Eng Mgr at Microsoft for fixing the following
-
-- Fixed logic for ManagementGroupID for policy initiative remediation.
+    > **NOTE**: Previous API version leveraged was 2019-09-01
 
 ## Flow Diagram
 
