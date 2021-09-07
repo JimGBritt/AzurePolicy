@@ -1880,7 +1880,7 @@ function New-PolicyInitiative
         <AzurePolicyPropertyBag>
         {
             "type": "Microsoft.Authorization/policySetDefinitions",
-            "apiVersion": "2019-09-01",
+            "apiVersion": "2020-09-01",
             "name": "<AZURE DIAG INITIATIVE NAME>",
             "dependsOn": [
 <Policy INIT RESIDs>
@@ -2320,7 +2320,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
@@ -2403,7 +2403,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
@@ -2486,7 +2486,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
