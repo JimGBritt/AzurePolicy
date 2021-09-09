@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.8
+.VERSION 2.9
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,15 +26,21 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-May 05, 2021 2.8
+September 07, 2021 2.9
     Update
-    * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
-      Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
+    * Updated the API version for both below types.  This was recently caught with the help
+    of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
+    within the ARM template that is generated as part of this script. 
 
-      THANK YOU Eric Golpe (Principal Cloud Solution Architect) - Microsoft for leaning in and driving this change on behalf of a customer requirement.
+    "type": "Microsoft.Authorization/policyDefinitions",
+    "apiVersion": "2020-09-01"
 
-      Note: Utilize -Dedicated switch to enable.  This will be a blanket configuration for all policies and will only enable for those resourceTypes that
-      support it.  Otherwise, the default will be AzureDiagnostics table
+    and 
+
+    "type": "Microsoft.Authorization/policySetDefinitions",
+    "apiVersion": "2020-09-01"
+
+    **NOTE**: Previous API version leveraged was 2019-09-01
 #>
 
 <#  
@@ -215,8 +221,24 @@ May 05, 2021 2.8
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: May 05, 2021 2.8
-   Updates
+   LASTEDIT: September 07, 2021 2.9
+     Minor Update
+    * Updated the API version for both below types.  This was recently caught with the help
+    of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
+    within the ARM template that is generated as part of this script. 
+
+    "type": "Microsoft.Authorization/policyDefinitions",
+    "apiVersion": "2020-09-01"
+
+    and 
+
+    "type": "Microsoft.Authorization/policySetDefinitions",
+    "apiVersion": "2020-09-01"
+
+    **NOTE**: Previous API version leveraged was 2019-09-01
+
+   May 05, 2021 2.8
+    Updates
     * Adding the ability to leverage a dedicated table (instead of AzureDiagnostics) for resourceTypes that support it
       Reference Link: https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/resource-manager-diagnostic-settings#diagnostic-setting-for-recovery-services-vault
 
@@ -1880,7 +1902,7 @@ function New-PolicyInitiative
         <AzurePolicyPropertyBag>
         {
             "type": "Microsoft.Authorization/policySetDefinitions",
-            "apiVersion": "2019-09-01",
+            "apiVersion": "2020-09-01",
             "name": "<AZURE DIAG INITIATIVE NAME>",
             "dependsOn": [
 <Policy INIT RESIDs>
@@ -2320,7 +2342,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
@@ -2403,7 +2425,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
@@ -2486,7 +2508,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
                     $JSONType = @'
 {
     "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2019-09-01",
+    "apiVersion": "2020-09-01",
     "name": "<SHORT NAME OF SERVICE>",
 
 '@
