@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.9
+.VERSION 3.0
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -628,7 +628,7 @@ function Get-ResourceType (
                         if($R.properties.categoryType -eq "Logs")
                         {
                             $Logs = $true
-                            $Categories += $r.name
+                            #$Categories += $r.name
                         }
                     }
                     $Kind = $Resource.kind                    
@@ -668,13 +668,13 @@ function Add-IndexNumberToArray (
 #Build the Log Array for each Resource Type
 function New-LogArray
 (
-     [Parameter(Mandatory=$True)]
-     [array]$logCategories,
+#     [Parameter(Mandatory=$True)]
+#     [array]$logCategories,
      [Parameter(Mandatory=$False)]
      $Dedicated
 )
 {
-    $logsArray += '
+    <#$logsArray += '
                                                 "logs": ['
         foreach ($element in $logCategories) {
             $logsArray += "
@@ -683,6 +683,20 @@ function New-LogArray
                                                         `"enabled`": `"[parameters('logsEnabled')]`"
                                                     },"
         }
+        $logsArray = $logsArray.Substring(0,$logsArray.Length-1)
+        $logsArray += '
+                                                ]'#>
+    
+    # Updated to change logic supporting categoryGroup for AllLogs
+    $logsArray += '
+    "logs": ['
+
+$logsArray += "
+        {
+            `"categoryGroup`": `"AllLogs`",
+            `"enabled`": `"[parameters('logsEnabled')]`"
+        },"
+
         $logsArray = $logsArray.Substring(0,$logsArray.Length-1)
         $logsArray += '
                                                 ]'
@@ -855,7 +869,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",                                        
                                         "properties": {
                                             "workspaceId": "[parameters('logAnalytics')]",<METRICS ARRAY><LOGS ARRAY>                                        
@@ -1014,7 +1028,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -1294,7 +1308,7 @@ $initParams = @'
     }
 }
 '@
-
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of AllLogs 
 $JSONRULES = @'
 {
             "if": {
@@ -1365,7 +1379,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -1607,7 +1621,7 @@ $initParams = @'
     }
 }
 '@
-
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of AllLogs 
 $JSONRULES = @'
 {
             "if": {
@@ -1675,7 +1689,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -2310,7 +2324,9 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($Type.logs)
             {
                 $Logcategories = $Type.Categories
-                $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+                #$logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+                # Removed LogCategories given we already know we want all categories - no need to analyze
+                $logsArray = New-LogArray -Dedicated $Dedicated
             }
             if($Type.metrics)
             {
@@ -2580,7 +2596,9 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         if($DiagnosticCapable[$ResourceTypeToProcess -1].Logs)
         {
             $logcategories = $DiagnosticCapable[$ResourceTypeToProcess -1].Categories
-            $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+            #$logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+            # Removed LogCategories given we already know we want all categories - no need to analyze
+            $logsArray = New-LogArray -Dedicated $Dedicated
         }
         else
         {
