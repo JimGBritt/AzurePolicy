@@ -687,13 +687,13 @@ function New-LogArray
         $logsArray += '
                                                 ]'#>
     
-    # Updated to change logic supporting categoryGroup for AllLogs
+    # Updated to change logic supporting categoryGroup for allLogs
     $logsArray += '
     "logs": ['
 
 $logsArray += "
         {
-            `"categoryGroup`": `"AllLogs`",
+            `"categoryGroup`": `"allLogs`",
             `"enabled`": `"[parameters('logsEnabled')]`"
         },"
 
@@ -1308,7 +1308,7 @@ $initParams = @'
     }
 }
 '@
-# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of AllLogs 
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of allLogs 
 $JSONRULES = @'
 {
             "if": {
@@ -1621,7 +1621,7 @@ $initParams = @'
     }
 }
 '@
-# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of AllLogs 
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of allLogs 
 $JSONRULES = @'
 {
             "if": {
