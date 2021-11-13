@@ -26,21 +26,21 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-September 07, 2021 2.9
+November 11, 2021 3.0
     Update
-    * Updated the API version for both below types.  This was recently caught with the help
-    of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
-    within the ARM template that is generated as part of this script. 
+    * This version now supports CategoryGroup allLogs which enables a customer to no longer
+    be required to pay attention to individual categories for diagnostics and ensures that all
+    logs are being sent always. 
+    
+    See: https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings/create-or-update#logsettings
+    and https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings-category/get#examples
 
-    "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2020-09-01"
+    * Now supported are Azure Storage Proxy ResourceType Policy Definition Exports! Please leverage
+    "-ExportStorageProxyDefinitions" parameter switch to enable exporting these definitions.  This is supported
+    on both individual policy exports or the ARM Template export for a Policy Initiative.
 
-    and 
-
-    "type": "Microsoft.Authorization/policySetDefinitions",
-    "apiVersion": "2020-09-01"
-
-    **NOTE**: Previous API version leveraged was 2019-09-01
+    Proxy ResoureceTypes: Azure Storage blob/queue/table/file
+    
 #>
 
 <#  
@@ -132,7 +132,9 @@ September 07, 2021 2.9
 
 .PARAMETER Dedicated
     This parameter allows you to specify a dedicated table for Azure Diagnostics for those ResourceTypes that support it
-    
+
+.PARAMETER ExportStorageProxyDefinitions
+    This parameter allows you to export policies to support proxy resources of Azure Storage Accounts (blobs, queues, tables, files)
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
@@ -148,6 +150,11 @@ September 07, 2021 2.9
   .\Create-AzDiagPolicy.ps1 -ExportLA
   Will prompt for subscriptionID to leverage for analysis, prompt for which resourceTypes to export for policies, and export the policies specific
   to Log Analytics only
+
+.EXAMPLE
+  .\Create-AzDiagPolicy.ps1 -ExportLA -ExportAll -ExportStorageProxyDefinitions
+  Will prompt for subscriptionID to leverage for analysis, export all the policies specific to Log Analytics only, and will export the Storage Proxy
+  resources policy definitions as well (blob, table, queue, file)
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -ExportEH
@@ -221,7 +228,22 @@ September 07, 2021 2.9
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: September 07, 2021 2.9
+   LASTEDIT: November 11, 2021 3.0
+    Update
+    * This version now supports CategoryGroup allLogs which enables a customer to no longer
+    be required to pay attention to individual categories for diagnostics and ensures that all
+    logs are being sent always. 
+    
+    See: https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings/create-or-update#logsettings
+    and https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings-category/get#examples
+
+    * Now supported are Azure Storage Proxy ResourceType Policy Definition Exports! Please leverage
+    "-ExportStorageProxyDefinitions" parameter switch to enable exporting these definitions.  This is supported
+    on both individual policy exports or the ARM Template export for a Policy Initiative.
+
+    Proxy ResoureceTypes: Azure Storage blob/queue/table/file
+    
+   September 07, 2021 2.9
      Minor Update
     * Updated the API version for both below types.  This was recently caught with the help
     of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
@@ -499,6 +521,9 @@ param
     # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
     [switch]$LogPolicyOnly=$False,
 
+    # When switch is used, Azure Storage Proxy Resource appropriate policy definitions will be exported (table, file, queue, blob)
+    [switch]$ExportStorageProxyDefinitions=$False,
+
     # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive
     [switch]$AllRegions=$False,
 
@@ -628,7 +653,6 @@ function Get-ResourceType (
                         if($R.properties.categoryType -eq "Logs")
                         {
                             $Logs = $true
-                            #$Categories += $r.name
                         }
                     }
                     $Kind = $Resource.kind                    
@@ -642,6 +666,21 @@ function Get-ResourceType (
             }
         }
     }
+    # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
+    If($ExportStorageProxyDefinitions)
+    {
+        $StorageProxyArray = @()
+        # Will need to update this if we ever have new storage proxies added by the storage team (or removed)
+        $StorageProxyArray = ("Microsoft.Storage/storageAccounts/blobServices","Microsoft.Storage/storageAccounts/queueServices","Microsoft.Storage/storageAccounts/fileServices","Microsoft.Storage/storageAccounts/tableServices") 
+    
+        Foreach($StorageProxy in $StorageProxyArray)
+        {
+            $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $StorageProxy; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = $Categories; 'Kind' = ""}
+            $analysis += $object # adds to the already created Analysis array we have
+        }
+    }
+    
+
     # Return the list of supported resources
     # Add the "ALL" option to the tail of the analysis array if we are only going against one subscription
     if($SubscriptionId)
@@ -668,25 +707,11 @@ function Add-IndexNumberToArray (
 #Build the Log Array for each Resource Type
 function New-LogArray
 (
-#     [Parameter(Mandatory=$True)]
-#     [array]$logCategories,
+
      [Parameter(Mandatory=$False)]
      $Dedicated
 )
 {
-    <#$logsArray += '
-                                                "logs": ['
-        foreach ($element in $logCategories) {
-            $logsArray += "
-                                                    {
-                                                        `"category`": `"$element`",
-                                                        `"enabled`": `"[parameters('logsEnabled')]`"
-                                                    },"
-        }
-        $logsArray = $logsArray.Substring(0,$logsArray.Length-1)
-        $logsArray += '
-                                                ]'#>
-    
     # Updated to change logic supporting categoryGroup for allLogs
     $logsArray += '
     "logs": ['
@@ -1080,7 +1105,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -1434,7 +1459,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -1740,7 +1765,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -2324,8 +2349,6 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($Type.logs)
             {
                 $Logcategories = $Type.Categories
-                #$logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
-                # Removed LogCategories given we already know we want all categories - no need to analyze
                 $logsArray = New-LogArray -Dedicated $Dedicated
             }
             if($Type.metrics)
@@ -2596,8 +2619,6 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         if($DiagnosticCapable[$ResourceTypeToProcess -1].Logs)
         {
             $logcategories = $DiagnosticCapable[$ResourceTypeToProcess -1].Categories
-            #$logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
-            # Removed LogCategories given we already know we want all categories - no need to analyze
             $logsArray = New-LogArray -Dedicated $Dedicated
         }
         else
