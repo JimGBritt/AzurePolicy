@@ -26,8 +26,16 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 11, 2021 3.0
+November 30, 2021 3.0
     Update
+    Kudos to collaborators in this update!
+    Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
+    for raising up an immediate bug found preventing proper evaluation of categoryGroup compliance.  Thank you!
+
+    Thank you to David Coulter (SR Program Manager at Microsoft and a frequent collaborator) https://github.com/DCtheGeek
+    for his big brain and support in working out the additional logic for CategoryGroup existence conditions in the Policy
+    analysis.  Without your support, this would have taken way longer so thank you :).
+
     * This version now supports CategoryGroup allLogs which enables a customer to no longer
     be required to pay attention to individual categories for diagnostics and ensures that all
     logs are being sent always. 
@@ -228,8 +236,16 @@ November 11, 2021 3.0
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: November 11, 2021 3.0
+   LASTEDIT: November 30, 2021 3.0
     Update
+    Kudos to collaborators in this update!
+    Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
+    for raising up an immediate bug found preventing proper evaluation of categoryGroup compliance.  Thank you!
+
+    Thank you to David Coulter (SR Program Manager at Microsoft and a frequent collaborator) https://github.com/DCtheGeek
+    for his big brain and support in working out the additional logic for CategoryGroup existence conditions in the Policy
+    analysis.  Without your support, this would have taken way longer so thank you :).
+
     * This version now supports CategoryGroup allLogs which enables a customer to no longer
     be required to pay attention to individual categories for diagnostics and ensures that all
     logs are being sent always. 
@@ -850,20 +866,44 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('LogsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('MetricsEnabled')]"
-                            },
-                            {
-                                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
-                                "equals": "[parameters('logAnalytics')]"
-                            }
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/metrics[*].enabled",
+                            "equals": "[parameters('MetricsEnabled')]"
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                            "equals": "[parameters('logAnalytics')]"
+                          }
                         ]
-                    },
+                      },
                     "roleDefinitionIds": [
                         "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
@@ -1006,18 +1046,42 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('LogsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('MetricsEnabled')]"
-                            },
-                            {
-                                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
-                                "equals": "[parameters('logAnalytics')]"
-                            }
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/metrics[*].enabled",
+                            "equals": "[parameters('MetricsEnabled')]"
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                            "equals": "[parameters('logAnalytics')]"
+                          }
                         ]
                     },
                     "roleDefinitionIds": [
@@ -1354,13 +1418,33 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('logsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('metricsEnabled')]"
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
                             },
                             {
                                 "field": "Microsoft.Insights/diagnosticSettings/eventHubName",
@@ -1667,13 +1751,33 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('logsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('metricsEnabled')]"
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
                             },
                             {
                                 "field": "Microsoft.Insights/diagnosticSettings/storageAccountId",
