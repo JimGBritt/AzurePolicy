@@ -600,6 +600,19 @@ function Get-ResourceType (
     If(!($analysis))
     {
         $analysis = @()
+        # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
+        If($ExportStorageProxyDefinitions)
+        {
+            $StorageProxyArray = @()
+            # Will need to update this if we ever have new storage proxies added by the storage team (or removed)
+            $StorageProxyArray = ("Microsoft.Storage/storageAccounts/blobServices","Microsoft.Storage/storageAccounts/queueServices","Microsoft.Storage/storageAccounts/fileServices","Microsoft.Storage/storageAccounts/tableServices") 
+        
+            Foreach($StorageProxy in $StorageProxyArray)
+            {
+                $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $StorageProxy; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = $Categories; 'Kind' = ""}
+                $analysis += $object # adds to the already created Analysis array we have
+            }
+        }
     }
     
     $GetScanDetails = @{
@@ -682,7 +695,7 @@ function Get-ResourceType (
             }
         }
     }
-    # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
+<#    # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
     If($ExportStorageProxyDefinitions)
     {
         $StorageProxyArray = @()
@@ -695,7 +708,7 @@ function Get-ResourceType (
             $analysis += $object # adds to the already created Analysis array we have
         }
     }
-    
+#>    
 
     # Return the list of supported resources
     # Add the "ALL" option to the tail of the analysis array if we are only going against one subscription
