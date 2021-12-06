@@ -26,7 +26,7 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-November 30, 2021 3.0
+December 06, 2021 3.0
     Update
     Kudos to collaborators in this update!
     Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
@@ -49,6 +49,8 @@ November 30, 2021 3.0
 
     Proxy ResoureceTypes: Azure Storage blob/queue/table/file
     
+    * Added "Kind" to the Menu that prompts to select ResourceTypes for clarity (many resourceTypes leverage Kind and this
+    script adds specific policies for each)
 #>
 
 <#  
@@ -236,7 +238,7 @@ November 30, 2021 3.0
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: November 30, 2021 3.0
+   LASTEDIT: December 06, 2021 3.0
     Update
     Kudos to collaborators in this update!
     Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
@@ -258,6 +260,9 @@ November 30, 2021 3.0
     on both individual policy exports or the ARM Template export for a Policy Initiative.
 
     Proxy ResoureceTypes: Azure Storage blob/queue/table/file
+    
+    * Added "Kind" to the Menu that prompts to select ResourceTypes for clarity (many resourceTypes leverage Kind and this
+    script adds specific policies for each)
     
    September 07, 2021 2.9
      Minor Update
@@ -690,8 +695,11 @@ function Get-ResourceType (
             catch {}
             finally
             {
-                $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind}
-                $analysis += $object
+                if(!($Exists))
+                {
+                    $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind}
+                    $analysis += $object
+                }
             }
         }
     }
@@ -2434,7 +2442,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             while($ResourceTypeToProcess -gt $DiagnosticCapable.Count -or $ResourceTypeToProcess -lt 1 -and $ExportALL -ne $True)
             {
                 Write-Host "The table below are the resource types that support sending diagnostics to Log Analytics and Event Hubs"
-                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs |Format-Table
+                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs, Kind |Format-Table
                 try
                 {
                     $ResourceTypeToProcess = Read-Host "Please select a number from 1 - $($DiagnosticCapable.count) to create custom policy (select resourceType ALL to create a policy for each RP)"
