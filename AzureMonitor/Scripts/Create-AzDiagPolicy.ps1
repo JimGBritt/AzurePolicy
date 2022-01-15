@@ -634,11 +634,14 @@ function Get-ResourceType (
         $Categories =@();
         $metrics = $false #initialize metrics flag to $false
         $logs = $false #initialize logs flag to $false
+        $CategoryGroupAllLogs = $false #initialize flag to $false
+        $CategoryGroupAuditLogs = $false #initialize flag to $false
         
         #Establish URI to gather resources
         # Determine cloud and ensure proper REST Endpoint defined
         $azEnvironment = Get-AzEnvironment -Name $Environment
-        $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
+        #$URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
+        $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2021-05-01-preview"
         #Write-Host "URI: $($URI)"
         
         $Exists = $false
@@ -688,6 +691,14 @@ function Get-ResourceType (
                         {
                             $Logs = $true
                         }
+                        If($R.properties.categoryGroups -eq "allLogs")
+                        {
+                            $CategoryGroupAllLogs = $true
+                        }
+                        If($R.properties.categoryGroups -eq "allLogs")
+                        {
+                            $CategoryGroupAuditLogs = $true
+                        }
                     }
                     $Kind = $Resource.kind                    
                 }
@@ -697,7 +708,7 @@ function Get-ResourceType (
             {
                 if(!($Exists))
                 {
-                    $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind}
+                    $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind; 'CategoryGroupAllLogs' = $CategoryGroupAllLogs; 'CategoryGroupAuditLogs' = $CategoryGroupAuditLogs}
                     $analysis += $object
                 }
             }
@@ -722,7 +733,7 @@ function Get-ResourceType (
     # Add the "ALL" option to the tail of the analysis array if we are only going against one subscription
     if($SubscriptionId)
     {
-        $object = New-Object -TypeName PSObject -Property @{'ResourceType' = "All"; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = "Various"; 'Kind' = "Various"}
+        $object = New-Object -TypeName PSObject -Property @{'ResourceType' = "All"; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = "Various"; 'Kind' = "Various"; 'CategoryGroupAllLogs' = "Various"; 'CategoryGroupAuditLogs' = "Various"}
         $analysis += $object
     }
     $analysis
@@ -2441,8 +2452,8 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             }
             while($ResourceTypeToProcess -gt $DiagnosticCapable.Count -or $ResourceTypeToProcess -lt 1 -and $ExportALL -ne $True)
             {
-                Write-Host "The table below are the resource types that support sending diagnostics to Log Analytics and Event Hubs"
-                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs, Kind |Format-Table
+                Write-Host "The table below are the resource types that support sending diagnostics to Log Analytics, Event Hubs, and Azure Storage"
+                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs, Kind, CategoryGroupAllLogs, CategoryGroupAuditLogs |Format-Table
                 try
                 {
                     $ResourceTypeToProcess = Read-Host "Please select a number from 1 - $($DiagnosticCapable.count) to create custom policy (select resourceType ALL to create a policy for each RP)"
