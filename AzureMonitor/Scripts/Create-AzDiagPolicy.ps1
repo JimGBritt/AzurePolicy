@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.9
+.VERSION 3.0
 
 .GUID e0962947-bf3c-4ed4-be3b-39cb7f6348c6
 
@@ -26,21 +26,31 @@ https://github.com/JimGBritt/AzurePolicy/tree/master/AzureMonitor/Scripts
 .EXTERNALSCRIPTDEPENDENCIES 
 
 .RELEASENOTES
-September 07, 2021 2.9
+December 06, 2021 3.0
     Update
-    * Updated the API version for both below types.  This was recently caught with the help
-    of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
-    within the ARM template that is generated as part of this script. 
+    Kudos to collaborators in this update!
+    Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
+    for raising up an immediate bug found preventing proper evaluation of categoryGroup compliance.  Thank you!
 
-    "type": "Microsoft.Authorization/policyDefinitions",
-    "apiVersion": "2020-09-01"
+    Thank you to David Coulter (SR Program Manager at Microsoft and a frequent collaborator) https://github.com/DCtheGeek
+    for his big brain and support in working out the additional logic for CategoryGroup existence conditions in the Policy
+    analysis.  Without your support, this would have taken way longer so thank you :).
 
-    and 
+    * This version now supports CategoryGroup allLogs which enables a customer to no longer
+    be required to pay attention to individual categories for diagnostics and ensures that all
+    logs are being sent always. 
+    
+    See: https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings/create-or-update#logsettings
+    and https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings-category/get#examples
 
-    "type": "Microsoft.Authorization/policySetDefinitions",
-    "apiVersion": "2020-09-01"
+    * Now supported are Azure Storage Proxy ResourceType Policy Definition Exports! Please leverage
+    "-ExportStorageProxyDefinitions" parameter switch to enable exporting these definitions.  This is supported
+    on both individual policy exports or the ARM Template export for a Policy Initiative.
 
-    **NOTE**: Previous API version leveraged was 2019-09-01
+    Proxy ResoureceTypes: Azure Storage blob/queue/table/file
+    
+    * Added "Kind" to the Menu that prompts to select ResourceTypes for clarity (many resourceTypes leverage Kind and this
+    script adds specific policies for each)
 #>
 
 <#  
@@ -132,7 +142,9 @@ September 07, 2021 2.9
 
 .PARAMETER Dedicated
     This parameter allows you to specify a dedicated table for Azure Diagnostics for those ResourceTypes that support it
-    
+
+.PARAMETER ExportStorageProxyDefinitions
+    This parameter allows you to export policies to support proxy resources of Azure Storage Accounts (blobs, queues, tables, files)
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -SubscriptionId "fd2323a9-2324-4d2a-90f6-7e6c2fe03512" -ResourceType "Microsoft.Sql/servers/databases" -ResourceGroup "RGName" -ExportLA -ExportEH
@@ -148,6 +160,11 @@ September 07, 2021 2.9
   .\Create-AzDiagPolicy.ps1 -ExportLA
   Will prompt for subscriptionID to leverage for analysis, prompt for which resourceTypes to export for policies, and export the policies specific
   to Log Analytics only
+
+.EXAMPLE
+  .\Create-AzDiagPolicy.ps1 -ExportLA -ExportAll -ExportStorageProxyDefinitions
+  Will prompt for subscriptionID to leverage for analysis, export all the policies specific to Log Analytics only, and will export the Storage Proxy
+  resources policy definitions as well (blob, table, queue, file)
 
 .EXAMPLE
   .\Create-AzDiagPolicy.ps1 -ExportEH
@@ -221,7 +238,33 @@ September 07, 2021 2.9
 
 .NOTES
    AUTHOR: Jim Britt Principal Program Manager - Azure CXP API (Azure Product Improvement) 
-   LASTEDIT: September 07, 2021 2.9
+   LASTEDIT: December 06, 2021 3.0
+    Update
+    Kudos to collaborators in this update!
+    Senthuran Sivananthan (Principal Cloud Solution Architect at Microsoft) https://github.com/SenthuranSivananthan 
+    for raising up an immediate bug found preventing proper evaluation of categoryGroup compliance.  Thank you!
+
+    Thank you to David Coulter (SR Program Manager at Microsoft and a frequent collaborator) https://github.com/DCtheGeek
+    for his big brain and support in working out the additional logic for CategoryGroup existence conditions in the Policy
+    analysis.  Without your support, this would have taken way longer so thank you :).
+
+    * This version now supports CategoryGroup allLogs which enables a customer to no longer
+    be required to pay attention to individual categories for diagnostics and ensures that all
+    logs are being sent always. 
+    
+    See: https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings/create-or-update#logsettings
+    and https://docs.microsoft.com/en-us/rest/api/monitor/diagnostic-settings-category/get#examples
+
+    * Now supported are Azure Storage Proxy ResourceType Policy Definition Exports! Please leverage
+    "-ExportStorageProxyDefinitions" parameter switch to enable exporting these definitions.  This is supported
+    on both individual policy exports or the ARM Template export for a Policy Initiative.
+
+    Proxy ResoureceTypes: Azure Storage blob/queue/table/file
+    
+    * Added "Kind" to the Menu that prompts to select ResourceTypes for clarity (many resourceTypes leverage Kind and this
+    script adds specific policies for each)
+    
+   September 07, 2021 2.9
      Minor Update
     * Updated the API version for both below types.  This was recently caught with the help
     of ARM TTK: https://github.com/Azure/arm-ttk indicating an old version of an API for Azure Policy
@@ -499,6 +542,9 @@ param
     # When switch is used, only Azure Policies to capture logs will be exported (metric only resources bypassed)
     [switch]$LogPolicyOnly=$False,
 
+    # When switch is used, Azure Storage Proxy Resource appropriate policy definitions will be exported (table, file, queue, blob)
+    [switch]$ExportStorageProxyDefinitions=$False,
+
     # AllRegions switch to allow log Analytics to use all regions instead of being region sensitive
     [switch]$AllRegions=$False,
 
@@ -559,6 +605,19 @@ function Get-ResourceType (
     If(!($analysis))
     {
         $analysis = @()
+        # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
+        If($ExportStorageProxyDefinitions)
+        {
+            $StorageProxyArray = @()
+            # Will need to update this if we ever have new storage proxies added by the storage team (or removed)
+            $StorageProxyArray = ("Microsoft.Storage/storageAccounts/blobServices","Microsoft.Storage/storageAccounts/queueServices","Microsoft.Storage/storageAccounts/fileServices","Microsoft.Storage/storageAccounts/tableServices") 
+        
+            Foreach($StorageProxy in $StorageProxyArray)
+            {
+                $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $StorageProxy; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = $Categories; 'Kind' = ""}
+                $analysis += $object # adds to the already created Analysis array we have
+            }
+        }
     }
     
     $GetScanDetails = @{
@@ -575,11 +634,14 @@ function Get-ResourceType (
         $Categories =@();
         $metrics = $false #initialize metrics flag to $false
         $logs = $false #initialize logs flag to $false
+        $CategoryGroupAllLogs = $false #initialize flag to $false
+        $CategoryGroupAuditLogs = $false #initialize flag to $false
         
         #Establish URI to gather resources
         # Determine cloud and ensure proper REST Endpoint defined
         $azEnvironment = Get-AzEnvironment -Name $Environment
-        $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
+        #$URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2017-05-01-preview" 
+        $URI = "$($azEnvironment.ResourceManagerUrl)$($Resource.ResourceId.substring(1))/providers/microsoft.insights/diagnosticSettingsCategories/?api-version=2021-05-01-preview"
         #Write-Host "URI: $($URI)"
         
         $Exists = $false
@@ -628,7 +690,14 @@ function Get-ResourceType (
                         if($R.properties.categoryType -eq "Logs")
                         {
                             $Logs = $true
-                            $Categories += $r.name
+                        }
+                        If($R.properties.categoryGroups -eq "allLogs")
+                        {
+                            $CategoryGroupAllLogs = $true
+                        }
+                        If($R.properties.categoryGroups -eq "allLogs")
+                        {
+                            $CategoryGroupAuditLogs = $true
                         }
                     }
                     $Kind = $Resource.kind                    
@@ -637,16 +706,34 @@ function Get-ResourceType (
             catch {}
             finally
             {
-                $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind}
-                $analysis += $object
+                if(!($Exists))
+                {
+                    $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $resource.ResourceType; 'Metrics' = $metrics; 'Logs' = $logs; 'Categories' = $Categories; 'Kind' = $Kind; 'CategoryGroupAllLogs' = $CategoryGroupAllLogs; 'CategoryGroupAuditLogs' = $CategoryGroupAuditLogs}
+                    $analysis += $object
+                }
             }
         }
     }
+<#    # If you opted to export the storage proxy policy definitions via the switch, this logic will add those to the export array
+    If($ExportStorageProxyDefinitions)
+    {
+        $StorageProxyArray = @()
+        # Will need to update this if we ever have new storage proxies added by the storage team (or removed)
+        $StorageProxyArray = ("Microsoft.Storage/storageAccounts/blobServices","Microsoft.Storage/storageAccounts/queueServices","Microsoft.Storage/storageAccounts/fileServices","Microsoft.Storage/storageAccounts/tableServices") 
+    
+        Foreach($StorageProxy in $StorageProxyArray)
+        {
+            $object = New-Object -TypeName PSObject -Property @{'ResourceType' = $StorageProxy; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = $Categories; 'Kind' = ""}
+            $analysis += $object # adds to the already created Analysis array we have
+        }
+    }
+#>    
+
     # Return the list of supported resources
     # Add the "ALL" option to the tail of the analysis array if we are only going against one subscription
     if($SubscriptionId)
     {
-        $object = New-Object -TypeName PSObject -Property @{'ResourceType' = "All"; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = "Various"; 'Kind' = "Various"}
+        $object = New-Object -TypeName PSObject -Property @{'ResourceType' = "All"; 'Metrics' = "True"; 'Logs' = "True"; 'Categories' = "Various"; 'Kind' = "Various"; 'CategoryGroupAllLogs' = "Various"; 'CategoryGroupAuditLogs' = "Various"}
         $analysis += $object
     }
     $analysis
@@ -668,21 +755,21 @@ function Add-IndexNumberToArray (
 #Build the Log Array for each Resource Type
 function New-LogArray
 (
-     [Parameter(Mandatory=$True)]
-     [array]$logCategories,
+
      [Parameter(Mandatory=$False)]
      $Dedicated
 )
 {
+    # Updated to change logic supporting categoryGroup for allLogs
     $logsArray += '
-                                                "logs": ['
-        foreach ($element in $logCategories) {
-            $logsArray += "
-                                                    {
-                                                        `"category`": `"$element`",
-                                                        `"enabled`": `"[parameters('logsEnabled')]`"
-                                                    },"
-        }
+    "logs": ['
+
+$logsArray += "
+        {
+            `"categoryGroup`": `"allLogs`",
+            `"enabled`": `"[parameters('logsEnabled')]`"
+        },"
+
         $logsArray = $logsArray.Substring(0,$logsArray.Length-1)
         $logsArray += '
                                                 ]'
@@ -811,20 +898,44 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('LogsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('MetricsEnabled')]"
-                            },
-                            {
-                                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
-                                "equals": "[parameters('logAnalytics')]"
-                            }
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/metrics[*].enabled",
+                            "equals": "[parameters('MetricsEnabled')]"
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                            "equals": "[parameters('logAnalytics')]"
+                          }
                         ]
-                    },
+                      },
                     "roleDefinitionIds": [
                         "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
                     ],
@@ -855,7 +966,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",                                        
                                         "properties": {
                                             "workspaceId": "[parameters('logAnalytics')]",<METRICS ARRAY><LOGS ARRAY>                                        
@@ -967,18 +1078,42 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('LogsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('MetricsEnabled')]"
-                            },
-                            {
-                                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
-                                "equals": "[parameters('logAnalytics')]"
-                            }
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/metrics[*].enabled",
+                            "equals": "[parameters('MetricsEnabled')]"
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                            "equals": "[parameters('logAnalytics')]"
+                          }
                         ]
                     },
                     "roleDefinitionIds": [
@@ -1014,7 +1149,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -1066,7 +1201,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -1294,7 +1429,7 @@ $initParams = @'
     }
 }
 '@
-
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of allLogs 
 $JSONRULES = @'
 {
             "if": {
@@ -1315,13 +1450,33 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('logsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('metricsEnabled')]"
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
                             },
                             {
                                 "field": "Microsoft.Insights/diagnosticSettings/eventHubName",
@@ -1365,7 +1520,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -1420,7 +1575,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -1607,7 +1762,7 @@ $initParams = @'
     }
 }
 '@
-
+# Updated APIVersion for Azure Diags to change logic supporting categoryGroup of allLogs 
 $JSONRULES = @'
 {
             "if": {
@@ -1628,13 +1783,33 @@ $JSONRULES = @'
                     "type": "Microsoft.Insights/diagnosticSettings",
                     "existenceCondition": {
                         "allOf": [
+                          {
+                            "anyOf": [
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                                "equals": "[parameters('logsEnabled')]"
+                                "count": {
+                                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]"                                    
+                                },
+                                "equals": 0
                             },
                             {
-                                "field": "Microsoft.Insights/diagnosticSettings/metrics.enabled",
-                                "equals": "[parameters('metricsEnabled')]"
+                                "count": {
+                                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                                  "where": {
+                                    "allOf": [
+                                      {
+                                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                                        "equals": "[parameters('LogsEnabled')]"
+                                      },
+                                      {
+                                        "field": "microsoft.insights/diagnosticSettings/logs[*].categoryGroup",
+                                        "equals": "allLogs"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "equals": 1
+                              }
+                            ]
                             },
                             {
                                 "field": "Microsoft.Insights/diagnosticSettings/storageAccountId",
@@ -1675,7 +1850,7 @@ $JSONRULES = @'
                                 "resources": [
                                     {
                                         "type": "<RESOURCE TYPE>/providers/diagnosticSettings",
-                                        "apiVersion": "2017-05-01-preview",
+                                        "apiVersion": "2021-05-01-preview",
                                         "name": "[concat(parameters('name'), '/', 'Microsoft.Insights/', parameters('profileName'))]",
                                         "location": "[parameters('location')]",
                                         "properties": {
@@ -1726,7 +1901,7 @@ if(!($ExportInitiative))
 $JSONVar = $JSONVar + $JSONType + @'
     "properties": {
         "displayName": "<POLICY RESOURCE DISPLAY NAME>",
-        "mode": "Indexed",
+        "mode": "All",
         "description": "This policy automatically deploys diagnostic settings to <POLICYDISPLAYNAME>.",
         "metadata": {
             "category": "Monitoring"
@@ -2277,8 +2452,8 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             }
             while($ResourceTypeToProcess -gt $DiagnosticCapable.Count -or $ResourceTypeToProcess -lt 1 -and $ExportALL -ne $True)
             {
-                Write-Host "The table below are the resource types that support sending diagnostics to Log Analytics and Event Hubs"
-                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs |Format-Table
+                Write-Host "The table below are the resource types that support sending diagnostics to Log Analytics, Event Hubs, and Azure Storage"
+                $DiagnosticCapable | Select-Object "#", ResourceType, Metrics, Logs, Kind, CategoryGroupAllLogs, CategoryGroupAuditLogs |Format-Table
                 try
                 {
                     $ResourceTypeToProcess = Read-Host "Please select a number from 1 - $($DiagnosticCapable.count) to create custom policy (select resourceType ALL to create a policy for each RP)"
@@ -2310,7 +2485,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
             if($Type.logs)
             {
                 $Logcategories = $Type.Categories
-                $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+                $logsArray = New-LogArray -Dedicated $Dedicated
             }
             if($Type.metrics)
             {
@@ -2580,7 +2755,7 @@ IF($($ExportEH) -or ($ExportLA) -or ($ExportStorage))
         if($DiagnosticCapable[$ResourceTypeToProcess -1].Logs)
         {
             $logcategories = $DiagnosticCapable[$ResourceTypeToProcess -1].Categories
-            $logsArray = New-LogArray $Logcategories -Dedicated $Dedicated
+            $logsArray = New-LogArray -Dedicated $Dedicated
         }
         else
         {
